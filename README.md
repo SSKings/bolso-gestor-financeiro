@@ -1,6 +1,7 @@
 # API Gestor Financeiro
 
 <p>
+  <img src="https://github.com/SSKings/gestor-financeiro/actions/workflows/ci.yml/badge.svg" alt="CI"/>
   <img src="https://img.shields.io/badge/Java-17-ED8B00?style=flat-square&logo=openjdk&logoColor=white"/>
   <img src="https://img.shields.io/badge/Spring%20Boot-3.2.5-6DB33F?style=flat-square&logo=springboot&logoColor=white"/>
   <img src="https://img.shields.io/badge/Spring%20Security-JWT-6DB33F?style=flat-square&logo=springsecurity&logoColor=white"/>
@@ -37,8 +38,8 @@ API REST para gerenciamento de finanças pessoais. Permite registro de usuários
 ### Com Docker (recomendado)
 
 ```bash
-git clone https://github.com/SSKings/Projetos-JAVA-Spring-Back-End-.git
-cd Projetos-JAVA-Spring-Back-End-/api.gestor.financeiro
+git clone https://github.com/SSKings/gestor-financeiro.git
+cd gestor-financeiro
 
 # Cria e sobe a API + PostgreSQL
 docker-compose up --build
@@ -49,7 +50,6 @@ A API estará disponível em `http://localhost:8080`.
 ### Local (modo desenvolvimento)
 
 ```bash
-cd api.gestor.financeiro
 ./mvnw spring-boot:run -Dspring.profiles.active=development
 ```
 

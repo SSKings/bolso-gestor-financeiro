@@ -1,0 +1,16 @@
+# PostgreSQL de DESENVOLVIMENTO. O Spring Boot sobe este compose sozinho em `./mvnw spring-boot:run` (perfil dev).
+# Porta só em 127.0.0.1. Imagem fixada por digest (a tag pode ser republicada).
+services:
+  postgres:
+    image: postgres:16-alpine@sha256:aa6cb33cf4c19c765cefcf48d96176258800870a9a1e930ad126200f9d825139
+    environment:
+      POSTGRES_DB: bolso
+      POSTGRES_USER: bolso
+      POSTGRES_PASSWORD: bolso-dev-only
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - bolso-dev-data:/var/lib/postgresql/data
+
+volumes:
+  bolso-dev-data: {}

@@ -1,0 +1,65 @@
+# Bolso — configuração comum. Perfil padrão: dev (application-dev.yml). Produção: SPRING_PROFILES_ACTIVE=prod,
+# e o ProductionConfigValidator recusa subir com segredo ausente/fraco ou CORS aberto.
+spring:
+  application:
+    name: bolso
+  profiles:
+    default: dev
+  datasource:
+    url: ${DATABASE_URL:}
+    username: ${DATABASE_USERNAME:}
+    password: ${DATABASE_PASSWORD:}
+  jpa:
+    open-in-view: false          # nada de consulta escondida na renderização do JSON
+    hibernate:
+      ddl-auto: validate         # o esquema é só do Flyway; a aplicação nunca altera tabelas
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true   # campo a mais no JSON (ex.: workspaceId, createdBy) é recusado, não ignorado
+  mvc:
+    problemdetails:
+      enabled: false
+
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: never
+    include-stacktrace: never
+  servlet:
+    session:
+      tracking-modes: []         # API sem sessão: nada de ;jsessionid na URL
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+bolso:
+  jwt:
+    secret: ${JWT_SECRET:}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:720}
+  login:
+    max-failures: 5              # falhas seguidas por conta antes de bloquear
+    lock-minutes: 15             # dobra a cada bloqueio seguido (15, 30, 60…), até 24 h
+  rate-limit:
+    auth-per-minute: ${AUTH_RATE_LIMIT_PER_MINUTE:20}
+  max-request-bytes: 65536       # a API só recebe JSON pequeno
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+  invite:
+    ttl-hours: 72
+  zone: ${APP_TIMEZONE:America/Sao_Paulo}   # o "hoje" do saldo e do mês atual (o servidor roda em UTC)

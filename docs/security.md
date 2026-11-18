@@ -35,6 +35,19 @@ Este documento lista cada controle e o teste que o comprova. Muitos vêm das sei
 | Pagamento de fatura burlando as regras | Só pela rota da fatura; a rota genérica de lançamentos recusa criar e editar `CARD_PAYMENT` | `cardPaymentOnlyThroughStatement` |
 | Conta fixa, orçamento ou previsão de outro espaço | Mesma guarda e chaves compostas; a confirmação só usa conta do espaço | `RecurrenceIntegrationTest.isolation`, `BudgetIntegrationTest.crud`, `ForecastIntegrationTest.emptyAndIsolation` |
 | Conta fixa paga duas vezes (clique duplo) | Checagem no serviço + índice único (conta fixa, mês) no banco | `confirm`, `concurrentConfirm` (8 confirmações simultâneas: exatamente uma vale) |
+| Extrato malicioso (XXE, arquivo gigante, CSV com fórmula/controle) | OFX lido **sem parser XML** (entidades viram texto); até 1 MB (nginx e API) e 2.000 linhas; descrição sem caracteres de controle, até 140; valor com teto e 2 casas | `StatementParserTest` (`ofxXxe`, `invalid`, `descriptionSanitized`, `amountsRejected`), `fileLimits`, E2E de produção |
+| Limite de 1 MB abrir a API toda | Limite maior **só** nas rotas de importação (filtro da API e `location` do nginx); o resto continua em 64 KB | `fileLimits`, E2E de produção |
+| Extrato importado duas vezes | Identidade da linha (FITID, Identificador do Nubank ou hash de data+valor+descrição+ordem) com índice único (conta, identidade) no banco; o lote é validado inteiro antes de gravar | `ofxFlow`, `latin1Semicolon`, `commitValidation` |
+| Importar em conta ou categoria de outro espaço | Mesma guarda; conta e categorias buscadas pelo espaço da rota | `ImportIntegrationTest.isolation` |
+| Regra de categoria virar ReDoS | Regra é **texto literal** (`contains`), nunca regex; 2–60 caracteres | `RuleIntegrationTest.validation` (`(a+)+$` é só texto) |
+| Alguém ligar o próprio Telegram à conta de outra pessoa | Código de uso único gerado logado: 256 bits, 10 min, só o SHA-256 no banco, linha travada ao consumir; um novo invalida os anteriores; participação e conta reconferidas no consumo | `codeRules`, `codeAccess`, `stateChangesBeforeConsume` |
+| Telegram continuar valendo depois de "sair" ou de deixar o espaço | O vínculo guarda a versão dos tokens: logout/troca de senha o derrubam; a participação é conferida **a cada mensagem**, e o bot age como a pessoa (mesma `WorkspaceAccess` e validação da API) | `logoutRevokes`, `leavingWorkspaceRevokes` |
+| Bot em grupo expor dados | Só conversa privada; em grupo recusa tudo (nem consome o código) | `groupsAndUnlinked` |
+| Injeção de HTML nas respostas do bot | Todo texto vindo de pessoas (descrição, nomes) escapado | `launching`, `queriesAndUndo` |
+| Spam no bot | 20 mensagens/min por conversa (memória limitada a 10 mil conversas); mensagens de bots e sem texto ignoradas | `TelegramTransportTest.rateLimit`, `botFilters` |
+| Token do bot vazar | Fora de log, de mensagem de erro e do `toString`; configuração inválida impede a API de subir sem mostrar o token; long polling só de saída (sem webhook, nenhuma porta aberta) | `clientRedactsToken`, `configStartup`, `properties` |
+| Dados financeiros no log | O texto das mensagens do Telegram nunca é logado | revisão de código |
+| Link do bot virar `javascript:` | O front só transforma em link um `https://t.me/<bot>?start=<código>` exato | `automation.test.tsx` |
 | Usuário padrão do Spring com senha no log | `UserDetailsServiceAutoConfiguration` desligada: não existe outro login além do Bolso | `noDefaultUser` |
 | Ferramentas expostas | Actuator só `health` sem detalhes (e bloqueado no nginx); Swagger só em dev | `actuator`, `docsDisabledOutsideDev` |
 | Disco cheio de log | Rotação 5 × 20 MB por container; logs em JSON | `docker-compose.prod.yml` |
@@ -46,12 +59,18 @@ Este documento lista cada controle e o teste que o comprova. Muitos vêm das sei
     **equivalente**: as chaves compostas já impedem um lançamento de apontar para conta de outro espaço;
   - fase 2 (cartão): 10 defeitos, todos pegos — depois de fortalecer um teste que passava pelo motivo errado (a rota
     genérica recusava o pagamento de fatura por falta de categoria, não pela regra do pagamento);
-  - fase 3 (contas fixas, orçamento, previsão): 12 defeitos, todos pegos.
+  - fase 3 (contas fixas, orçamento, previsão): 12 defeitos, todos pegos;
+  - fase 4 (importação, regras, Telegram): 16 defeitos, todos pegos — linha repetida importada, categoria ou conta de
+    outro espaço, prévia sem checar membro, limite de 1 MB em todas as rotas, regra menos específica vencendo, código
+    do Telegram reutilizável, sem validade ou não invalidado pelo novo, vínculo sobrevivendo ao logout ou à saída do
+    espaço, bot aceitando grupo, HTML sem escapar, `/desfazer` apagando lançamento que não veio do Telegram.
 - **Pilha de produção subida e testada** (nginx TLS → API → PostgreSQL) com `deploy/e2e-smoke.py`: espaço
   compartilhado, saldos, cartão parcelado, pagamento de fatura, intrusa recebendo 404/400, cabeçalhos de segurança,
   actuator e OpenAPI fora do ar, logout revogando o token; contas fixas com confirmação única, previsão e
-  orçamento — 28/28. As migrações V2 e V3 também foram aplicadas sobre um banco existente (o de desenvolvimento), sem
-  perder dados. No banco, o usuário da API recebeu "permission denied" para `CREATE TABLE`, `DROP`,
+  orçamento; importação de OFX em Latin-1 pelo nginx com regra aplicada, reimportação sem duplicar, 413 acima de 1 MB
+  (e 64 KB no resto da API), intrusa recebendo 404 na importação, Telegram desligado sem token — 36/36. As migrações
+  V2, V3 e V4 também foram aplicadas sobre um banco existente (o de desenvolvimento), sem perder dados. Com
+  `TELEGRAM_ENABLED=true` e token inválido, a API não sobe, e o token não aparece no log. No banco, o usuário da API recebeu "permission denied" para `CREATE TABLE`, `DROP`,
   `ALTER`, `flyway_schema_history` e `COPY ... TO PROGRAM`.
 
 ## Riscos aceitos

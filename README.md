@@ -27,10 +27,15 @@ foi o dinheiro no mês.
 - **Orçamento por categoria**: limite mensal com alerta em 80% e estouro acima de 100%, contando também o cartão
 - **Previsão do mês**: quanto vai sobrar no fim do mês — saldo de hoje, mais o que vai entrar, menos contas fixas
   (inclusive atrasadas), lançamentos agendados e faturas que vencem no mês
+- **Importar extrato** (OFX ou CSV do banco): prévia para revisar antes de gravar, categorias sugeridas e **nada
+  duplicado** — reimportar o mesmo arquivo, ou um período que se sobrepõe, só traz o que é novo. Lançamento manual
+  parecido (mesmo dia e valor) vem marcado para você decidir
+- **Regras de categoria**: "descrição contém *uber* → Transporte", sem acento nem maiúscula; a mais específica vence
+- **Telegram**: mande `32,50 almoço` e o gasto entra na hora, já categorizado; `/saldo`, `/contas`, `/desfazer`, e
+  um lembrete por dia das contas fixas atrasadas ou vencendo
 - **App instalável** no celular (PWA)
 
-Próximas fases: importação de extrato (OFX/CSV), categorização automática e lançamento e alertas pelo Telegram — ver
-[docs/roadmap.md](docs/roadmap.md).
+Próximas ideias: metas e Open Finance — ver [docs/roadmap.md](docs/roadmap.md).
 
 ## Segurança desde o começo
 
@@ -41,6 +46,10 @@ Próximas fases: importação de extrato (OFX/CSV), categorização automática 
 - Senha com política e lista de senhas comuns, bloqueio progressivo por conta, limite por IP, tokens revogáveis
   (logout e troca de senha derrubam todas as sessões), convites de uso único guardados só como hash
 - O cartão guarda **só os 4 últimos dígitos**: a API recusa o número completo e o banco não tem onde guardá-lo
+- Extrato lido **sem parser XML** (sem XXE), com limite de tamanho e de linhas; regras de categoria são texto, não
+  regex (sem ReDoS)
+- O Telegram é ligado por código de uso único e o bot age **como a pessoa**, pelas mesmas checagens da API: sair do
+  espaço ou de todos os aparelhos desliga a conversa na hora; o token do bot nunca aparece em log
 - Produção com três usuários no PostgreSQL (a API só tem DML), containers sem root e somente leitura, nginx com TLS e
   CSP, logs com rotação; a API não sobe com configuração insegura
 
@@ -50,16 +59,16 @@ Detalhes, ameaças e o teste de cada controle: [docs/security.md](docs/security.
 
 | Parte | Comando | Testes | Cobertura (linhas / branches) |
 |---|---|---|---|
-| Backend | `cd backend && ./mvnw verify` | 117, contra **PostgreSQL de verdade** (Testcontainers) | 98% / 92% |
-| Frontend | `cd frontend && npm run coverage` | 77 (Vitest + Testing Library) | 96% / 89% |
-| Produção | `python3 deploy/e2e-smoke.py https://...` | 28 verificações ponta a ponta (nginx → API → PostgreSQL) | — |
+| Backend | `cd backend && ./mvnw verify` | 166, contra **PostgreSQL de verdade** (Testcontainers) e um Telegram falso local | 98% / 92% |
+| Frontend | `cd frontend && npm run coverage` | 90 (Vitest + Testing Library) | 95% / 90% |
+| Produção | `python3 deploy/e2e-smoke.py https://...` | 36 verificações ponta a ponta (nginx → API → PostgreSQL) | — |
 
 Desenvolvido com TDD: os testes de cada fatia foram escritos antes do código. O build **falha** se a cobertura cair
 (mínimo de 90% das linhas e 85% dos branches nas duas partes). As proteções críticas passaram por teste de mutação
 manual: cada defeito injetado (lançamento lido sem filtrar o espaço, papel de dono não checado, token sem versão,
 convite reutilizável, último dono saindo, compra no dia do fechamento na fatura errada, pagamento contado como gasto,
-número completo do cartão aceito, conta fixa confirmada duas vezes, previsão sem as contas atrasadas…) foi pego por um
-teste.
+número completo do cartão aceito, conta fixa confirmada duas vezes, previsão sem as contas atrasadas, extrato
+importado duas vezes, código do Telegram reutilizável, Telegram valendo depois do logout…) foi pego por um teste.
 
 ## Rodando localmente
 
@@ -82,6 +91,8 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 ```
 
 Sobe PostgreSQL (rede interna, sem porta exposta), API (perfil `prod`) e nginx (TLS, front-end e proxy de `/api`).
+Telegram (opcional): crie o bot no @BotFather e preencha `TELEGRAM_ENABLED=true`, `TELEGRAM_BOT_TOKEN` e
+`TELEGRAM_BOT_USERNAME` no `.env.prod` — não precisa abrir porta (long polling).
 Depois de subir, `python3 deploy/e2e-smoke.py https://seu-dominio --verify-tls` confere a pilha de ponta a ponta (cria
 dados de teste: rode num ambiente de homologação).
 
@@ -96,7 +107,7 @@ Testcontainers · JaCoCo
 
 ```
 backend/    API: auth, workspace (espaços e convites), account, category, transaction, card, recurrence, budget,
-            forecast, dashboard
+            forecast, dashboard, rule (categorização), importing (extrato), telegram
 frontend/   SPA/PWA em React
 deploy/     produção: compose, nginx, papéis do banco
 docs/       segurança, decisões e roadmap

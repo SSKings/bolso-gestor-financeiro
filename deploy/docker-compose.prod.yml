@@ -52,6 +52,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?defina CORS_ALLOWED_ORIGINS}
       APP_TIMEZONE: ${APP_TIMEZONE:-America/Sao_Paulo}
+      TELEGRAM_ENABLED: ${TELEGRAM_ENABLED:-false}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
     networks: [edge, data]
     mem_limit: ${API_MEM_LIMIT:-768m}
     read_only: true

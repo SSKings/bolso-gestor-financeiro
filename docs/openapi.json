@@ -27,6 +27,7 @@
           "name" : {
             "maxLength" : 60,
             "minLength" : 0,
+            "pattern" : "^[^\\p{Cntrl}\\u2028\\u2029]*$",
             "type" : "string"
           },
           "type" : {
@@ -141,6 +142,7 @@
           "name" : {
             "maxLength" : 60,
             "minLength" : 0,
+            "pattern" : "^[^\\p{Cntrl}\\u2028\\u2029]*$",
             "type" : "string"
           }
         },
@@ -348,6 +350,7 @@
           "name" : {
             "maxLength" : 40,
             "minLength" : 0,
+            "pattern" : "^[^\\p{Cntrl}\\u2028\\u2029]*$",
             "type" : "string"
           }
         },
@@ -446,6 +449,7 @@
           "description" : {
             "maxLength" : 140,
             "minLength" : 0,
+            "pattern" : "^[^\\p{Cntrl}\\u2028\\u2029]*$",
             "type" : "string"
           },
           "externalId" : {
@@ -784,6 +788,7 @@
           "description" : {
             "maxLength" : 140,
             "minLength" : 0,
+            "pattern" : "^[^\\p{Cntrl}\\u2028\\u2029]*$",
             "type" : "string"
           },
           "installments" : {
@@ -856,6 +861,7 @@
           "description" : {
             "maxLength" : 140,
             "minLength" : 0,
+            "pattern" : "^[^\\p{Cntrl}\\u2028\\u2029]*$",
             "type" : "string"
           },
           "endMonth" : {
@@ -944,6 +950,7 @@
           "name" : {
             "maxLength" : 100,
             "minLength" : 0,
+            "pattern" : "^[^\\p{Cntrl}\\u2028\\u2029]*$",
             "type" : "string"
           },
           "password" : {
@@ -974,6 +981,7 @@
           "pattern" : {
             "maxLength" : 60,
             "minLength" : 2,
+            "pattern" : "^[^\\p{Cntrl}\\u2028\\u2029]*$",
             "type" : "string"
           }
         },
@@ -1156,6 +1164,7 @@
           "description" : {
             "maxLength" : 140,
             "minLength" : 0,
+            "pattern" : "^[^\\p{Cntrl}\\u2028\\u2029]*$",
             "type" : "string"
           },
           "toAccountId" : {
@@ -1257,6 +1266,7 @@
           "name" : {
             "maxLength" : 40,
             "minLength" : 0,
+            "pattern" : "^[^\\p{Cntrl}\\u2028\\u2029]*$",
             "type" : "string"
           }
         },
@@ -1284,6 +1294,7 @@
           "name" : {
             "maxLength" : 60,
             "minLength" : 0,
+            "pattern" : "^[^\\p{Cntrl}\\u2028\\u2029]*$",
             "type" : "string"
           }
         },

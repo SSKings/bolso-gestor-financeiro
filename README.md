@@ -22,10 +22,15 @@ foi o dinheiro no mês.
 - **Cartão de crédito como na vida real**: compra à vista ou parcelada (até 48×) caindo nas faturas certas pelo dia de
   fechamento, fatura com vencimento e status, pagamento a partir de uma conta e limite disponível. O gasto conta no mês
   da fatura e o pagamento não é contado de novo
+- **Contas fixas e assinaturas**: cada mês mostra o que está atrasado, vence em breve, pendente ou pago; você confirma
+  com o valor real (a conta de luz muda) e não dá para confirmar duas vezes
+- **Orçamento por categoria**: limite mensal com alerta em 80% e estouro acima de 100%, contando também o cartão
+- **Previsão do mês**: quanto vai sobrar no fim do mês — saldo de hoje, mais o que vai entrar, menos contas fixas
+  (inclusive atrasadas), lançamentos agendados e faturas que vencem no mês
 - **App instalável** no celular (PWA)
 
-Próximas fases: contas fixas e orçamento por categoria, importação de extrato (OFX/CSV) e lançamento pelo Telegram —
-ver [docs/roadmap.md](docs/roadmap.md).
+Próximas fases: importação de extrato (OFX/CSV), categorização automática e lançamento e alertas pelo Telegram — ver
+[docs/roadmap.md](docs/roadmap.md).
 
 ## Segurança desde o começo
 
@@ -45,15 +50,16 @@ Detalhes, ameaças e o teste de cada controle: [docs/security.md](docs/security.
 
 | Parte | Comando | Testes | Cobertura (linhas / branches) |
 |---|---|---|---|
-| Backend | `cd backend && ./mvnw verify` | 102, contra **PostgreSQL de verdade** (Testcontainers) | 98% / 91% |
-| Frontend | `cd frontend && npm run coverage` | 66 (Vitest + Testing Library) | 97% / 90% |
-| Produção | `python3 deploy/e2e-smoke.py https://...` | 19 verificações ponta a ponta (nginx → API → PostgreSQL) | — |
+| Backend | `cd backend && ./mvnw verify` | 117, contra **PostgreSQL de verdade** (Testcontainers) | 98% / 92% |
+| Frontend | `cd frontend && npm run coverage` | 77 (Vitest + Testing Library) | 96% / 89% |
+| Produção | `python3 deploy/e2e-smoke.py https://...` | 28 verificações ponta a ponta (nginx → API → PostgreSQL) | — |
 
 Desenvolvido com TDD: os testes de cada fatia foram escritos antes do código. O build **falha** se a cobertura cair
 (mínimo de 90% das linhas e 85% dos branches nas duas partes). As proteções críticas passaram por teste de mutação
 manual: cada defeito injetado (lançamento lido sem filtrar o espaço, papel de dono não checado, token sem versão,
 convite reutilizável, último dono saindo, compra no dia do fechamento na fatura errada, pagamento contado como gasto,
-número completo do cartão aceito…) foi pego por um teste.
+número completo do cartão aceito, conta fixa confirmada duas vezes, previsão sem as contas atrasadas…) foi pego por um
+teste.
 
 ## Rodando localmente
 
@@ -89,7 +95,8 @@ Testcontainers · JaCoCo
 ## Estrutura
 
 ```
-backend/    API: auth, workspace (espaços e convites), account, category, transaction, card, dashboard
+backend/    API: auth, workspace (espaços e convites), account, category, transaction, card, recurrence, budget,
+            forecast, dashboard
 frontend/   SPA/PWA em React
 deploy/     produção: compose, nginx, papéis do banco
 docs/       segurança, decisões e roadmap

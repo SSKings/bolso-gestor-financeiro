@@ -33,6 +33,8 @@ Este documento lista cada controle e o teste que o comprova. Muitos vêm das sei
 | Número de cartão vazado | Só os 4 últimos dígitos: a API recusa o número completo (e não há campo para ele); a coluna do banco tem 4 caracteres com `CHECK` de dígitos | `CardIntegrationTest.onlyLast4`; esquema conferido na pilha de produção |
 | Cartão, compra ou fatura de outro espaço | Mesma guarda e chaves compostas das contas; compra só é encontrada pelo cartão **e** pelo espaço da rota | `CardIntegrationTest.isolation` |
 | Pagamento de fatura burlando as regras | Só pela rota da fatura; a rota genérica de lançamentos recusa criar e editar `CARD_PAYMENT` | `cardPaymentOnlyThroughStatement` |
+| Conta fixa, orçamento ou previsão de outro espaço | Mesma guarda e chaves compostas; a confirmação só usa conta do espaço | `RecurrenceIntegrationTest.isolation`, `BudgetIntegrationTest.crud`, `ForecastIntegrationTest.emptyAndIsolation` |
+| Conta fixa paga duas vezes (clique duplo) | Checagem no serviço + índice único (conta fixa, mês) no banco | `confirm`, `concurrentConfirm` (8 confirmações simultâneas: exatamente uma vale) |
 | Usuário padrão do Spring com senha no log | `UserDetailsServiceAutoConfiguration` desligada: não existe outro login além do Bolso | `noDefaultUser` |
 | Ferramentas expostas | Actuator só `health` sem detalhes (e bloqueado no nginx); Swagger só em dev | `actuator`, `docsDisabledOutsideDev` |
 | Disco cheio de log | Rotação 5 × 20 MB por container; logs em JSON | `docker-compose.prod.yml` |
@@ -43,11 +45,13 @@ Este documento lista cada controle e o teste que o comprova. Muitos vêm das sei
   - fase 1: 9 defeitos, 8 pegos. O que sobreviveu (tirar o filtro de espaço da consulta de saldo) é uma mutação
     **equivalente**: as chaves compostas já impedem um lançamento de apontar para conta de outro espaço;
   - fase 2 (cartão): 10 defeitos, todos pegos — depois de fortalecer um teste que passava pelo motivo errado (a rota
-    genérica recusava o pagamento de fatura por falta de categoria, não pela regra do pagamento).
+    genérica recusava o pagamento de fatura por falta de categoria, não pela regra do pagamento);
+  - fase 3 (contas fixas, orçamento, previsão): 12 defeitos, todos pegos.
 - **Pilha de produção subida e testada** (nginx TLS → API → PostgreSQL) com `deploy/e2e-smoke.py`: espaço
   compartilhado, saldos, cartão parcelado, pagamento de fatura, intrusa recebendo 404/400, cabeçalhos de segurança,
-  actuator e OpenAPI fora do ar, logout revogando o token — 19/19. A migração V2 também foi aplicada sobre um banco
-  existente (o de desenvolvimento), sem perder dados. No banco, o usuário da API recebeu "permission denied" para `CREATE TABLE`, `DROP`,
+  actuator e OpenAPI fora do ar, logout revogando o token; contas fixas com confirmação única, previsão e
+  orçamento — 28/28. As migrações V2 e V3 também foram aplicadas sobre um banco existente (o de desenvolvimento), sem
+  perder dados. No banco, o usuário da API recebeu "permission denied" para `CREATE TABLE`, `DROP`,
   `ALTER`, `flyway_schema_history` e `COPY ... TO PROGRAM`.
 
 ## Riscos aceitos

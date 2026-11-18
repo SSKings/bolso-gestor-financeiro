@@ -14,6 +14,8 @@ import { JoinPage } from './pages/JoinPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { CardsPage } from './pages/CardsPage'
 import { CardStatementPage } from './pages/CardStatementPage'
+import { RecurrencesPage } from './pages/RecurrencesPage'
+import { BudgetsPage } from './pages/BudgetsPage'
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { token, me } = useAuth()
@@ -39,6 +41,8 @@ export function App() {
             <Route path="categorias" element={<CategoriesPage />} />
             <Route path="cartoes" element={<CardsPage />} />
             <Route path="cartoes/:cardId" element={<CardStatementPage />} />
+            <Route path="contas-fixas" element={<RecurrencesPage />} />
+            <Route path="orcamentos" element={<BudgetsPage />} />
             <Route path="espaco" element={<WorkspacePage />} />
             <Route path="perfil" element={<ProfilePage />} />
           </Route>

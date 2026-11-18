@@ -51,3 +51,24 @@ export interface Statement {
   payments: { transactionId: string; date: string; amount: string; account: Ref }[]
 }
 export interface StatementSummary { cardId: string; name: string; statementTotal: string; dueDate: string; status: StatementStatus }
+
+export type OccurrenceStatus = 'PAID' | 'OVERDUE' | 'DUE_SOON' | 'PENDING'
+export type FlowType = 'INCOME' | 'EXPENSE'
+export interface Recurrence {
+  id: string; type: FlowType; description: string; amount: string; dayOfMonth: number
+  category: Ref & { color: string }; account: Ref; startMonth: string; endMonth: string | null; active: boolean
+}
+export interface RecurrenceInput {
+  type: FlowType; description: string; amount: string; dayOfMonth: number; categoryId: string; accountId: string
+  startMonth: string; endMonth?: string; active?: boolean
+}
+export interface Occurrence {
+  recurrenceId: string; type: FlowType; description: string; month: string; dueDate: string; expectedAmount: string
+  status: OccurrenceStatus; transactionId: string | null; paidAmount: string | null; category: Ref & { color: string }; account: Ref
+}
+export type BudgetStatus = 'OK' | 'WARNING' | 'EXCEEDED'
+export interface Budget { category: Ref & { color: string }; amount: string; spent: string; remaining: string; percent: number; status: BudgetStatus }
+export interface Forecast {
+  month: string; today: string; currentBalance: string; pendingIncome: string; pendingExpense: string; projectedBalance: string
+  items: { kind: 'SCHEDULED' | 'BILL' | 'CARD_STATEMENT'; description: string; date: string; amount: string; direction: 'IN' | 'OUT' }[]
+}

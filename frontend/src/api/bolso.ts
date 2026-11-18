@@ -1,7 +1,7 @@
 import { api } from './client'
 import type {
   Account, AccountType, AuthResponse, Card, CardInput, Category, CategoryKind, Dashboard, Invite, InviteCreated, Me, Member,
-  PurchaseInput, Statement,
+  PurchaseInput, Statement, Budget, Forecast, Occurrence, Recurrence, RecurrenceInput,
   TransactionInput, TransactionPage, TransactionType, WorkspaceSummary,
 } from './types'
 
@@ -61,4 +61,18 @@ export const cards = {
   statement: (id: string, cardId: string, month: string) => api.get<Statement>(card(id, cardId, `/statements/${month}`)),
   pay: (id: string, cardId: string, month: string, body: { accountId: string; amount: string; date: string }) =>
     api.post(card(id, cardId, `/statements/${month}/payments`), body),
+}
+
+export const planning = {
+  recurrences: (id: string) => api.get<Recurrence[]>(ws(id, '/recurrences')),
+  createRecurrence: (id: string, body: RecurrenceInput) => api.post<Recurrence>(ws(id, '/recurrences'), body),
+  updateRecurrence: (id: string, recId: string, body: RecurrenceInput) => api.put<Recurrence>(ws(id, `/recurrences/${encodeURIComponent(recId)}`), body),
+  deleteRecurrence: (id: string, recId: string) => api.del(ws(id, `/recurrences/${encodeURIComponent(recId)}`)),
+  occurrences: (id: string, month: string) => api.get<Occurrence[]>(ws(id, `/recurrences/occurrences?month=${month}`)),
+  confirm: (id: string, recId: string, month: string, body: { amount: string; date: string; accountId: string }) =>
+    api.post(ws(id, `/recurrences/${encodeURIComponent(recId)}/occurrences/${month}/confirm`), body),
+  budgets: (id: string, month: string) => api.get<Budget[]>(ws(id, `/budgets?month=${month}`)),
+  setBudget: (id: string, categoryId: string, amount: string) => api.put<Budget>(ws(id, `/budgets/${encodeURIComponent(categoryId)}`), { amount }),
+  deleteBudget: (id: string, categoryId: string) => api.del(ws(id, `/budgets/${encodeURIComponent(categoryId)}`)),
+  forecast: (id: string) => api.get<Forecast>(ws(id, '/forecast')),
 }

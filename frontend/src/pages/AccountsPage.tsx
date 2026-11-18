@@ -63,7 +63,11 @@ export function AccountsPage() {
     <div className="space-y-5">
       <div className="flex items-baseline justify-between">
         <h1 className="text-lg font-semibold">Contas</h1>
-        <Link to="/categorias" className="text-sm font-medium text-emerald-700">Categorias</Link>
+        <nav aria-label="Planejamento" className="flex gap-3 text-sm font-medium text-emerald-700">
+          <Link to="/categorias">Categorias</Link>
+          <Link to="/contas-fixas">Contas fixas</Link>
+          <Link to="/orcamentos">Orçamentos</Link>
+        </nav>
       </div>
       <ul className="divide-y divide-slate-100 rounded-2xl bg-white shadow-sm">{accounts.filter((a) => !a.archived).map(row)}</ul>
       {accounts.some((a) => a.archived) && (

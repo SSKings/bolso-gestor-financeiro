@@ -25,6 +25,7 @@ public class AccountService {
 
     private final AccountRepository accounts;
     private final TransactionRepository transactions;
+    private final com.sskings.bolso.recurrence.RecurrenceRepository recurrences;
     private final BalanceQuery balanceQuery;
     private final WorkspaceAccess access;
     private final Today today;
@@ -74,7 +75,7 @@ public class AccountService {
     public void delete(UUID ws, UUID id) {
         access.member(ws);
         Account a = find(ws, id);
-        if (transactions.existsByAccount(ws, id)) throw ApiException.conflict("Account has transactions; archive it instead");
+        if (transactions.existsByAccount(ws, id) || recurrences.existsByWorkspaceIdAndAccountId(ws, id)) throw ApiException.conflict("Account has transactions; archive it instead");
         accounts.delete(a);
     }
 

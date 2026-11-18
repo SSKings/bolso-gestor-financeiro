@@ -72,3 +72,17 @@ pessoa entrar.
   (o projeto anterior o guardava).
 - Fora do escopo por enquanto: estorno, anuidade/juros e fatura de cartão adicional.
 
+## ADR-010 — Contas fixas com confirmação, orçamento e previsão do mês
+
+- **Conta fixa não vira lançamento sozinha.** Valores mudam (luz, água) e um lançamento automático com valor errado
+  engana o saldo. Cada mês a ocorrência fica pendente até ser **confirmada com o valor real**; a confirmação cria o
+  lançamento ligado à conta fixa e ao mês. Um índice único (conta fixa, mês) impede a confirmação dupla mesmo com
+  cliques simultâneos. Excluir a conta fixa mantém os lançamentos (só tira o vínculo).
+- **Status por vencimento**: atrasada, vence em breve (7 dias), pendente, paga. O lembrete fora do app (Telegram)
+  fica para a fase 4; por enquanto, o painel mostra o que está atrasado ou vencendo.
+- **Orçamento**: um limite mensal por categoria de despesa; o gasto inclui as parcelas de cartão do mês (mesma regra
+  do painel). Atenção a partir de 80%; estourado acima de 100%.
+- **Previsão do mês atual**: saldo de hoje + receitas que vão entrar − contas fixas não pagas (inclusive atrasadas) −
+  lançamentos agendados − o que falta das faturas que vencem no mês. Sem contagem dupla: conta fixa confirmada com data
+  futura entra só como agendada; pagamento de fatura agendado já reduz o que falta da fatura.
+

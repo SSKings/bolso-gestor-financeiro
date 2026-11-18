@@ -25,6 +25,7 @@ public class CategoryService {
     private final CategoryRepository categories;
     private final TransactionRepository transactions;
     private final com.sskings.bolso.card.CardPurchaseRepository purchases;
+    private final com.sskings.bolso.recurrence.RecurrenceRepository recurrences;
     private final WorkspaceAccess access;
     private final Clock clock;
 
@@ -62,7 +63,8 @@ public class CategoryService {
     public void delete(UUID ws, UUID id) {
         access.member(ws);
         Category c = find(ws, id);
-        if (transactions.existsByWorkspaceIdAndCategoryId(ws, id) || purchases.existsByWorkspaceIdAndCategoryId(ws, id)) {
+        if (transactions.existsByWorkspaceIdAndCategoryId(ws, id) || purchases.existsByWorkspaceIdAndCategoryId(ws, id)
+                || recurrences.existsByWorkspaceIdAndCategoryId(ws, id)) {
             throw ApiException.conflict("Category has transactions; archive it instead");
         }
         categories.delete(c);

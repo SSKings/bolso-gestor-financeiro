@@ -26,6 +26,11 @@ public class MutableClock extends Clock {
         now.updateAndGet(i -> i.plus(d));
     }
 
+    /** Fixa o instante (ex.: "hoje é 10/11/2026" nos testes de previsão). Chame ANTES de cadastrar: o token nasce nele. */
+    public void set(Instant instant) {
+        now.set(instant);
+    }
+
     public void reset() {
         now.set(Instant.now());
     }

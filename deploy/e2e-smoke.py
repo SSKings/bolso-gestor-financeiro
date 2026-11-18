@@ -109,6 +109,31 @@ def main():
     check("painel de dezembro: gasto 33,34 (o pagamento não conta de novo)",
           float(dz["expense"]) == 33.34 and dz["cards"][0]["name"] == "Nubank", dz.get("expense"))
 
+    # ---- contas fixas, orçamento e previsão ----
+    month = today[:7]
+    s, rec, _ = call("POST", f"/api/workspaces/{ws}/recurrences", ana, {"type": "EXPENSE", "description": "Internet", "amount": "100.00",
+                     "dayOfMonth": 28, "categoryId": food, "accountId": chk["id"], "startMonth": month})
+    check("conta fixa cadastrada", s == 201)
+    occ = call("GET", f"/api/workspaces/{ws}/recurrences/occurrences?month={month}", bruno)[1]
+    check("conta fixa aparece no mês, ainda não paga", [o["status"] for o in occ if o["description"] == "Internet"][0] != "PAID")
+    fc = call("GET", f"/api/workspaces/{ws}/forecast", ana)[1]
+    check("previsão = saldo + a receber − a pagar", abs(float(fc["projectedBalance"]) - (float(fc["currentBalance"])
+          + float(fc["pendingIncome"]) - float(fc["pendingExpense"]))) < 0.001, fc)
+    check("previsão inclui a conta fixa não paga", "Internet" in [i["description"] for i in fc["items"]])
+    s, _, _ = call("POST", f"/api/workspaces/{ws}/recurrences/{rec['id']}/occurrences/{month}/confirm", bruno,
+                   {"amount": "104.90", "date": today, "accountId": chk["id"]})
+    check("confirmar com o valor real", s == 201)
+    s, dup, _ = call("POST", f"/api/workspaces/{ws}/recurrences/{rec['id']}/occurrences/{month}/confirm", ana,
+                     {"amount": "104.90", "date": today, "accountId": chk["id"]})
+    check("não confirma duas vezes no mesmo mês", s == 409, dup)
+    fc2 = call("GET", f"/api/workspaces/{ws}/forecast", ana)[1]
+    check("paga, a conta fixa sai da previsão", "Internet" not in [i["description"] for i in fc2["items"]])
+    s, _, _ = call("PUT", f"/api/workspaces/{ws}/budgets/{food}", ana, {"amount": "150.00"})
+    bud = [b for b in call("GET", f"/api/workspaces/{ws}/budgets?month={month}", ana)[1] if b["category"]["id"] == food][0]
+    check("orçamento soma o gasto do mês (almoço + conta fixa)", s == 200 and float(bud["spent"]) >= 35.90 + 104.90, bud)
+    check("intrusa não vê previsão nem orçamento", call("GET", f"/api/workspaces/{ws}/forecast", eve)[0] == 404
+          and call("GET", f"/api/workspaces/{ws}/budgets?month={month}", eve)[0] == 404)
+
     # ---- isolamento ----
     own = me_e["workspaces"][0]["id"]
     codes = [call("GET", f"/api/workspaces/{ws}/transactions", eve)[0],

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { finance } from '../api/bolso'
-import type { Dashboard } from '../api/types'
+import { finance, planning } from '../api/bolso'
+import type { Budget, Dashboard, Forecast, Occurrence } from '../api/types'
+import { statusLabel } from './RecurrencesPage'
+import { BudgetBar } from './BudgetsPage'
 import { messageOf } from '../lib/errors'
 import { ErrorAlert } from '../components/Alert'
 import { MonthNav } from '../components/MonthNav'
@@ -33,12 +35,72 @@ export function DashboardPage() {
     return () => { alive = false }
   }, [id, month, version])
 
+  // previsão, vencimentos e orçamentos: só no mês atual (o que já passou não tem "vai vencer")
+  const isCurrent = month === currentMonth()
+  const [forecast, setForecast] = useState<Forecast | null>(null)
+  const [due, setDue] = useState<Occurrence[]>([])
+  const [tight, setTight] = useState<Budget[]>([])
+  useEffect(() => {
+    let alive = true
+    setForecast(null)
+    setDue([])
+    setTight([])
+    if (!isCurrent) return
+    planning.forecast(id).then((f) => alive && setForecast(f)).catch(() => {})
+    planning.occurrences(id, month).then((o) => alive && setDue(o.filter((x) => x.status === 'OVERDUE' || x.status === 'DUE_SOON'))).catch(() => {})
+    planning.budgets(id, month).then((b) => alive && setTight(b.filter((x) => x.status !== 'OK'))).catch(() => {})
+    return () => { alive = false }
+  }, [id, month, version, isCurrent])
+
   const max = Math.max(...(data?.expensesByCategory.map((c) => Number(c.amount)) ?? [0]), 1)
 
   return (
     <div className="space-y-5">
       <MonthNav month={month} onChange={setMonth} />
       <ErrorAlert message={error} />
+      {forecast && (
+        <section aria-labelledby="forecast-title" className="rounded-2xl bg-emerald-700 p-4 text-white shadow-sm">
+          <h2 id="forecast-title" className="text-sm opacity-90">Previsão do mês</h2>
+          <p className="text-xs opacity-80">Saldo previsto no fim do mês</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{formatBRL(forecast.projectedBalance)}</p>
+          <div className="mt-2 flex gap-4 text-sm">
+            <p>A receber <span className="tabular-nums">{formatBRL(forecast.pendingIncome)}</span></p>
+            <p>A pagar <span className="tabular-nums">{formatBRL(forecast.pendingExpense)}</span></p>
+          </div>
+        </section>
+      )}
+      {due.length > 0 && (
+        <section className="rounded-2xl bg-white p-4 shadow-sm">
+          <div className="mb-2 flex items-baseline justify-between">
+            <h2 className="font-semibold">Vencendo</h2>
+            <Link to="/contas-fixas" className="text-sm text-emerald-700">Contas fixas</Link>
+          </div>
+          <ul aria-label="Vencendo" className="divide-y divide-slate-100">
+            {due.map((o) => (
+              <li key={o.recurrenceId} className="flex justify-between py-2 text-sm">
+                <span>{o.description} <span className={o.status === 'OVERDUE' ? 'text-rose-700' : 'text-amber-700'}>· {statusLabel(o)}</span></span>
+                <span className="tabular-nums">{formatBRL(o.expectedAmount)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {tight.length > 0 && (
+        <section className="rounded-2xl bg-white p-4 shadow-sm">
+          <div className="mb-2 flex items-baseline justify-between">
+            <h2 className="font-semibold">Orçamentos</h2>
+            <Link to="/orcamentos" className="text-sm text-emerald-700">Ver todos</Link>
+          </div>
+          <ul aria-label="Orçamentos apertados" className="space-y-2">
+            {tight.map((b) => (
+              <li key={b.category.id} className="text-sm">
+                <div className="flex justify-between"><span>{b.category.name}</span><span className="tabular-nums">{b.percent}%</span></div>
+                <BudgetBar budget={b} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {data && (
         <>
           <div className="grid grid-cols-3 gap-3">

@@ -37,6 +37,9 @@ import java.util.List;
 @Configuration(proxyBeanMethods = false)
 public class SecurityConfig {
 
+    /** Extrato de até 1 MB (mais o envelope multipart); a importação de 2.000 linhas em JSON cabe nisso. */
+    static final long IMPORT_MAX_BYTES = 1_100_000;
+
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(11);
@@ -73,7 +76,8 @@ public class SecurityConfig {
                     if (docs) a.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll();
                     a.anyRequest().authenticated();
                 })
-                .addFilterBefore(new RequestSizeLimitFilter(props.maxRequestBytes()), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new RequestSizeLimitFilter(props.maxRequestBytes(), IMPORT_MAX_BYTES,
+                        p -> p.matches("/api/workspaces/[^/]+/imports/(preview|commit)")), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new RateLimitFilter(props.rateLimit().authPerMinute(), clock), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

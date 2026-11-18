@@ -70,6 +70,14 @@ public class Transaction {
     @Column(name = "recurrence_month")
     private LocalDate recurrenceMonth;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10, updatable = false)
+    private TransactionSource source = TransactionSource.MANUAL;
+
+    /** Identidade da linha do extrato importado (FITID ou hash): a mesma linha não entra duas vezes na conta. */
+    @Column(name = "external_id", length = 80, updatable = false)
+    private String externalId;
+
     @Column(name = "created_by", updatable = false)
     private UUID createdBy;
 

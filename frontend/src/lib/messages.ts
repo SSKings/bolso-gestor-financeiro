@@ -49,10 +49,36 @@ const MESSAGES: Record<string, string> = {
   'Each installment must be at least R$ 0,01': 'Cada parcela precisa ser de pelo menos R$ 0,01.',
   'Card payments are made through the card statement': 'Pague a fatura pela tela do cartão.',
   'Card payments are changed through the card statement': 'Pagamentos de fatura se alteram pela tela do cartão.',
+  'Rule already exists': 'Já existe uma regra com esse texto.',
+  'Rule not found': 'Regra não encontrada.',
+  'Pattern must have at least 2 characters': 'O texto da regra precisa de pelo menos 2 letras.',
+  'Unsupported file format': 'Formato não reconhecido. Use o extrato em OFX ou CSV exportado pelo banco.',
+  'No transactions found in the file': 'Nenhum lançamento encontrado no arquivo.',
+  'File too large (maximum 1 MB)': 'Arquivo grande demais (máximo 1 MB).',
+  'Choose a file to import': 'Escolha o arquivo do extrato.',
+  'Could not read the file': 'Não foi possível ler o arquivo.',
+  'Invalid upload': 'Não foi possível enviar o arquivo.',
+  'Imported lines are incomes or expenses': 'Cada linha importada é receita ou despesa.',
+  'Telegram is not configured': 'O Telegram não está configurado neste servidor.',
 }
+
+// Mensagens com número (linha ou transação do arquivo)
+const PATTERNS: [RegExp, (m: RegExpMatchArray) => string][] = [
+  [/^Invalid date on line (\d+)$/, (m) => `Data inválida na linha ${m[1]} do arquivo.`],
+  [/^Invalid amount on line (\d+)$/, (m) => `Valor inválido na linha ${m[1]} do arquivo.`],
+  [/^Invalid date in transaction (\d+)$/, (m) => `Data inválida no lançamento ${m[1]} do arquivo.`],
+  [/^Invalid amount in transaction (\d+)$/, (m) => `Valor inválido no lançamento ${m[1]} do arquivo.`],
+  [/^Too many lines \(maximum (\d+)\)$/, (m) => `O arquivo tem lançamentos demais (máximo ${m[1]}). Exporte um período menor.`],
+]
 
 export const GENERIC_ERROR = 'Algo deu errado. Tente de novo.'
 
 export function translate(message: string | undefined): string {
-  return (message && MESSAGES[message]) || GENERIC_ERROR
+  if (!message) return GENERIC_ERROR
+  if (MESSAGES[message]) return MESSAGES[message]
+  for (const [re, fn] of PATTERNS) {
+    const m = message.match(re)
+    if (m) return fn(m)
+  }
+  return GENERIC_ERROR
 }

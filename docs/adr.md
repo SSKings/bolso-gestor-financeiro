@@ -86,3 +86,37 @@ pessoa entrar.
   lançamentos agendados − o que falta das faturas que vencem no mês. Sem contagem dupla: conta fixa confirmada com data
   futura entra só como agendada; pagamento de fatura agendado já reduz o que falta da fatura.
 
+## ADR-011 — Importação de extrato em duas etapas, sem duplicar
+
+- **Prévia → revisão → importação.** A prévia lê o arquivo e sugere categorias sem gravar nada; a pessoa confere e
+  manda só as linhas que quer. Nada entra "às cegas".
+- **OFX sem parser XML.** OFX 1 é SGML (tags sem fechamento) e OFX 2 é XML; ler os dois com padrões de texto resolve
+  os formatos dos bancos brasileiros e elimina XXE por construção. CSV com detecção de separador (`;` ou `,`), de
+  codificação (UTF-8 ou Windows-1252) e de colunas pelos nomes usuais (Nubank, Inter, genérico).
+- **Identidade da linha**: FITID do OFX, Identificador do CSV do Nubank ou, sem isso, hash de data + valor +
+  descrição + ordem da repetição (dois cafés iguais no mesmo dia são dois lançamentos; reimportar o mesmo arquivo
+  dá os mesmos hashes). Índice único (conta, identidade) no banco: nem duas importações simultâneas duplicam.
+- **Parecido ≠ duplicado.** Lançamento manual com mesma data, valor e tipo é marcado "parecido" e vem desmarcado — a
+  pessoa decide (pode ser o mesmo gasto lançado antes à mão).
+
+## ADR-012 — Regras de categorização como texto, não regex
+
+"Descrição contém X → categoria", comparando sem acento e sem maiúsculas; a regra mais longa vence ("uber eats"
+ganha de "uber"). Regex daria mais poder, mas abre ReDoS e é difícil para quem não programa. Regra cuja categoria
+foi arquivada é ignorada; regra de despesa não vale para receita (cai em "Outros").
+
+## ADR-013 — Telegram por long polling, agindo como a pessoa
+
+- **Long polling, não webhook**: a API só faz conexões de saída; não precisa de URL pública nem de porta aberta, e
+  funciona igual em casa e no servidor. Desligado sem token; configuração inválida impede a subida.
+- **Vínculo por código de uso único** gerado no app (link `t.me/<bot>?start=<código>`): o Telegram não tem senha do
+  Bolso e o código prova que quem está na conversa é quem estava logado. Uma conversa por pessoa e vice-versa.
+- **O bot roda como a pessoa** (contexto de segurança só durante a mensagem): os mesmos serviços, a mesma
+  `WorkspaceAccess` e a mesma validação da API. Não há "caminho do bot" com regras próprias para escapar.
+- **Revogação**: o vínculo guarda a versão dos tokens; sair de todos os aparelhos ou trocar a senha desliga o
+  Telegram. Sair do espaço também.
+- **Valor no chat só no formato brasileiro**: "10,555" é recusado (no extrato seria milhar em inglês; no chat é quase
+  sempre erro de digitação e viraria um gasto mil vezes maior).
+- **Lembrete diário** das contas fixas atrasadas, de hoje e de amanhã: rodada de hora em hora das 8h às 21h, no máximo
+  uma mensagem por dia e só se houver algo; marcado depois do envio (se o Telegram falhar, tenta na próxima hora).
+

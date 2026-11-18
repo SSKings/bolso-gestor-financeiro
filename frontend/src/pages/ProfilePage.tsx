@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext'
 import { messageOf } from '../lib/errors'
 import { ErrorAlert, SuccessStatus } from '../components/Alert'
 import { TextField, primaryButton } from '../components/fields'
+import { TelegramSection } from './TelegramSection'
 
 export function ProfilePage() {
   const { me, logout, replaceToken } = useAuth()
@@ -41,6 +42,7 @@ export function ProfilePage() {
         <p className="font-medium">{me?.name}</p>
         <p className="text-sm text-slate-500">{me?.email}</p>
       </section>
+      <TelegramSection />
       <form onSubmit={change} className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
         <h2 className="font-semibold">Trocar senha</h2>
         <TextField id="pw-current" label="Senha atual" type="password" autoComplete="current-password" required value={current} onChange={(e) => setCurrent(e.target.value)} />

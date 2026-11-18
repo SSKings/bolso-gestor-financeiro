@@ -67,6 +67,8 @@ export function AccountsPage() {
           <Link to="/categorias">Categorias</Link>
           <Link to="/contas-fixas">Contas fixas</Link>
           <Link to="/orcamentos">Orçamentos</Link>
+          <Link to="/regras">Regras</Link>
+          <Link to="/importar">Importar</Link>
         </nav>
       </div>
       <ul className="divide-y divide-slate-100 rounded-2xl bg-white shadow-sm">{accounts.filter((a) => !a.archived).map(row)}</ul>

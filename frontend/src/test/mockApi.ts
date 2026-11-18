@@ -11,7 +11,7 @@ export function mockApi(routes: Record<string, Handler>) {
   const fetch = vi.fn(async (input: string, init: RequestInit = {}) => {
     const url = new URL(input, 'http://localhost')
     const method = init.method ?? 'GET'
-    const body = init.body ? JSON.parse(String(init.body)) : undefined
+    const body = init.body instanceof FormData ? init.body : init.body ? JSON.parse(String(init.body)) : undefined
     const headers = (init.headers ?? {}) as Record<string, string>
     calls.push({ method, path: url.pathname, search: url.search, body, auth: headers.Authorization })
     const key = Object.keys(routes).find((k) => {

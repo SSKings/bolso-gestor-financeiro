@@ -61,8 +61,14 @@ public class TransactionService {
 
     @Transactional
     public TransactionView create(UUID ws, TransactionRequest req) {
+        return create(ws, req, TransactionSource.MANUAL);
+    }
+
+    @Transactional
+    public TransactionView create(UUID ws, TransactionRequest req, TransactionSource source) {
         access.member(ws);
         Transaction t = new Transaction(ws, CurrentUser.get().getId(), clock.instant());
+        t.setSource(source);
         apply(ws, t, req, true);
         return views(ws, List.of(transactions.save(t))).get(0);
     }
@@ -207,7 +213,7 @@ public class TransactionService {
                     t.getStatementMonth() == null ? null : YearMonth.from(t.getStatementMonth()),
                     t.getRecurrenceId() == null || !rec.containsKey(t.getRecurrenceId()) ? null
                             : new Ref(t.getRecurrenceId(), rec.get(t.getRecurrenceId())),
-                    u == null ? null : new Ref(u.getId(), u.getName()), t.getCreatedAt());
+                    t.getSource(), u == null ? null : new Ref(u.getId(), u.getName()), t.getCreatedAt());
         }).toList();
     }
 }

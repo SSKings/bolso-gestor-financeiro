@@ -41,6 +41,28 @@ def call(method, path, token=None, body=None):
     return status, data, hdrs
 
 
+def upload(path, token, fields, filename, content):
+    """multipart/form-data montado à mão (só biblioteca padrão)."""
+    boundary = "----bolso" + uuid.uuid4().hex
+    parts = []
+    for k, v in fields.items():
+        parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode())
+    parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{filename}"\r\n'
+                 f'Content-Type: application/octet-stream\r\n\r\n'.encode() + content + b"\r\n")
+    parts.append(f"--{boundary}--\r\n".encode())
+    req = urllib.request.Request(BASE + path, method="POST", data=b"".join(parts),
+                                 headers={"Authorization": "Bearer " + token, "Content-Type": f"multipart/form-data; boundary={boundary}"})
+    try:
+        with urllib.request.urlopen(req, context=CTX, timeout=30) as r:
+            return r.status, json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        raw = e.read()
+        try:
+            return e.code, json.loads(raw)
+        except ValueError:
+            return e.code, None
+
+
 def check(name, cond, detail=""):
     results.append(bool(cond))
     print(("OK    " if cond else "FALHA ") + name + (f"  [{detail}]" if detail and not cond else ""))
@@ -133,6 +155,33 @@ def main():
     check("orçamento soma o gasto do mês (almoço + conta fixa)", s == 200 and float(bud["spent"]) >= 35.90 + 104.90, bud)
     check("intrusa não vê previsão nem orçamento", call("GET", f"/api/workspaces/{ws}/forecast", eve)[0] == 404
           and call("GET", f"/api/workspaces/{ws}/budgets?month={month}", eve)[0] == 404)
+
+    # ---- fase 4: regras, importação de extrato, Telegram ----
+    transport = next(c["id"] for c in cats if c["name"] == "Transporte")
+    s, _, _ = call("POST", f"/api/workspaces/{ws}/rules", ana, {"pattern": "Uber", "categoryId": transport})
+    check("regra de categoria criada", s == 201)
+    ofx = ("OFXHEADER:100\r\n<OFX><BANKTRANLIST>"
+           f"<STMTTRN><DTPOSTED>{today.replace('-', '')}<TRNAMT>-23.10<FITID>E2E-{uuid.uuid4().hex[:8]}<MEMO>UBER *TRIP</STMTTRN>"
+           f"<STMTTRN><DTPOSTED>{today.replace('-', '')}<TRNAMT>-12.00<FITID>E2E-{uuid.uuid4().hex[:8]}<MEMO>PADARIA S\xc3O JO\xc3O</STMTTRN>"
+           "</BANKTRANLIST></OFX>").encode("latin-1")
+    s, prev = upload(f"/api/workspaces/{ws}/imports/preview", bruno, {"accountId": chk["id"]}, "extrato.ofx", ofx)
+    check("prévia do OFX pelo nginx (Latin-1, regra aplicada)", s == 200 and prev["entries"][0]["suggestedCategory"]["name"] == "Transporte"
+          and prev["entries"][1]["description"] == "PADARIA SÃO JOÃO", prev)
+    body = {"accountId": chk["id"], "entries": [{k: e[k] for k in ("externalId", "date", "amount", "type", "description")}
+                                                 | {"categoryId": e["suggestedCategory"]["id"]} for e in prev["entries"]]}
+    s, res, _ = call("POST", f"/api/workspaces/{ws}/imports/commit", bruno, body)
+    check("importa 2 lançamentos", s == 200 and res["imported"] == 2, res)
+    s, res, _ = call("POST", f"/api/workspaces/{ws}/imports/commit", bruno, body)
+    check("reimportar não duplica", s == 200 and res["imported"] == 0 and res["skipped"] == 2, res)
+    s, _ = upload(f"/api/workspaces/{ws}/imports/preview", bruno, {"accountId": chk["id"]}, "grande.csv", b"a" * 1_200_000)
+    check("arquivo acima de 1 MB recusado (413)", s == 413, s)
+    s, _ = upload(f"/api/workspaces/{ws}/imports/preview", eve, {"accountId": chk["id"]}, "extrato.ofx", ofx)
+    check("intrusa não importa no espaço alheio", s == 404, s)
+    s, _, _ = call("POST", f"/api/workspaces/{ws}/accounts", ana, {"name": "x" * 70_000, "type": "CASH", "initialBalance": "0"})
+    check("o resto da API continua limitado a 64 KB", s == 413, s)
+    s, tg, _ = call("GET", "/api/me/telegram", ana)
+    check("Telegram desligado sem token: status informa, código recusado", s == 200 and tg["available"] is False
+          and call("POST", "/api/me/telegram/code", ana, {"workspaceId": ws, "accountId": chk["id"]})[0] == 409, tg)
 
     # ---- isolamento ----
     own = me_e["workspaces"][0]["id"]

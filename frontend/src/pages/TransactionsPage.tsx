@@ -63,6 +63,8 @@ export function TransactionsPage() {
                 {formatDay(t.date)} · <span>{t.type === 'TRANSFER' ? `${t.account.name} → ${t.toAccount?.name}`
                   : t.type === 'CARD_PAYMENT' ? `Pagamento de fatura · ${t.account.name}` : `${t.category?.name} · ${t.account.name}`}</span>
                 {t.createdBy && ` · por ${t.createdBy.name}`}
+                {t.source === 'IMPORT' && ' · importado'}
+                {t.source === 'TELEGRAM' && ' · via Telegram'}
               </p>
             </div>
             <span className={`tabular-nums font-semibold ${t.type === 'EXPENSE' || t.type === 'CARD_PAYMENT' ? 'text-rose-700' : t.type === 'INCOME' ? 'text-emerald-700' : 'text-slate-700'}`}>{signed(t)}</span>

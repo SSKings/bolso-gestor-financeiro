@@ -19,9 +19,11 @@ export function WorkspacePage() {
   const ws = current!
   const owner = ws.role === 'OWNER'
 
+  // o link gerado some só ao trocar de espaço — não a cada recarga (gerar o convite já recarrega a lista)
+  useEffect(() => setLink(''), [ws.id])
+
   useEffect(() => {
     let alive = true
-    setLink('')
     workspaces.members(ws.id).then((m) => alive && setMembers(m)).catch(() => {})
     if (owner) workspaces.invites(ws.id).then((i) => alive && setInvites(i)).catch(() => {})
     return () => { alive = false }

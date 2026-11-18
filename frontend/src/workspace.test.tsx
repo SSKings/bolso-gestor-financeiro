@@ -46,6 +46,10 @@ describe('espaços compartilhados', () => {
     const link = await screen.findByLabelText('Link do convite')
     expect(link).toHaveValue(`${window.location.origin}/convite#codigo=${'C'.repeat(43)}`)
     expect(api.last('POST', `/api/workspaces/${WS}/invites`)).toBeDefined()
+    // depois de gerar, a tela recarrega membros e convites: o link NÃO pode sumir com a recarga (bug pego pelo CI)
+    await waitFor(() => expect(api.calls.filter((c) => c.method === 'GET' && c.path === `/api/workspaces/${WS}/invites`).length).toBeGreaterThan(1))
+    await new Promise((r) => setTimeout(r, 50))
+    expect(screen.getByLabelText('Link do convite')).toBeInTheDocument()
   })
 
   it('dono remove membro (com confirmação); membro comum não vê as ações de dono', async () => {

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ACCOUNTS, CATEGORIES, ME, WS, mockApi } from './test/mockApi'
 import { renderApp } from './test/render'
 import { currentMonth } from './lib/dates'
+import type { Budget, Occurrence, Recurrence } from './api/types'
 
 const M = currentMonth()
 const base = {
@@ -14,21 +15,21 @@ const base = {
 }
 const cat = { id: 'c1', name: 'Mercado', color: '#22c55e' }
 const acc = { id: 'a2', name: 'Nubank' }
-const occ = (o: Record<string, unknown>) => ({ type: 'EXPENSE', month: M, expectedAmount: '100.00', transactionId: null, paidAmount: null, category: cat, account: acc, ...o })
-const OCCURRENCES = [
+const occ = (o: Partial<Occurrence> & Pick<Occurrence, 'recurrenceId' | 'description' | 'dueDate' | 'status'>): Occurrence => ({ type: 'EXPENSE', month: M, expectedAmount: 100, transactionId: null, paidAmount: null, category: cat, account: acc, ...o })
+const OCCURRENCES: Occurrence[] = [
   occ({ recurrenceId: 'r1', description: 'Internet', dueDate: `${M}-05`, status: 'OVERDUE' }),
-  occ({ recurrenceId: 'r2', description: 'Aluguel', dueDate: `${M}-15`, expectedAmount: '1500.00', status: 'DUE_SOON' }),
-  occ({ recurrenceId: 'r3', description: 'Streaming', dueDate: `${M}-08`, expectedAmount: '40.00', status: 'PAID', transactionId: 't9', paidAmount: '39.90' }),
-  occ({ recurrenceId: 'r4', type: 'INCOME', description: 'Salário', dueDate: `${M}-25`, expectedAmount: '3000.00', status: 'PENDING' }),
+  occ({ recurrenceId: 'r2', description: 'Aluguel', dueDate: `${M}-15`, expectedAmount: 1500, status: 'DUE_SOON' }),
+  occ({ recurrenceId: 'r3', description: 'Streaming', dueDate: `${M}-08`, expectedAmount: 40, status: 'PAID', transactionId: 't9', paidAmount: 39.9 }),
+  occ({ recurrenceId: 'r4', type: 'INCOME', description: 'Salário', dueDate: `${M}-25`, expectedAmount: 3000, status: 'PENDING' }),
 ]
-const RECURRENCES = [
-  { id: 'r1', type: 'EXPENSE', description: 'Internet', amount: '100.00', dayOfMonth: 5, category: cat, account: acc, startMonth: '2026-01', endMonth: null, active: true },
-  { id: 'r5', type: 'EXPENSE', description: 'Academia', amount: '120.00', dayOfMonth: 3, category: cat, account: acc, startMonth: '2026-01', endMonth: null, active: false },
+const RECURRENCES: Recurrence[] = [
+  { id: 'r1', type: 'EXPENSE', description: 'Internet', amount: 100, dayOfMonth: 5, category: cat, account: acc, startMonth: '2026-01', endMonth: null, active: true },
+  { id: 'r5', type: 'EXPENSE', description: 'Academia', amount: 120, dayOfMonth: 3, category: cat, account: acc, startMonth: '2026-01', endMonth: null, active: false },
 ]
-const BUDGETS = [
-  { category: { id: 'c2', name: 'Alimentação', color: '#f97316' }, amount: '100.00', spent: '120.00', remaining: '-20.00', percent: 120, status: 'EXCEEDED' },
-  { category: cat, amount: '500.00', spent: '450.00', remaining: '50.00', percent: 90, status: 'WARNING' },
-  { category: { id: 'c9', name: 'Lazer', color: '#ec4899' }, amount: '300.00', spent: '30.00', remaining: '270.00', percent: 10, status: 'OK' },
+const BUDGETS: Budget[] = [
+  { category: { id: 'c2', name: 'Alimentação', color: '#f97316' }, amount: 100, spent: 120, remaining: -20, percent: 120, status: 'EXCEEDED' },
+  { category: cat, amount: 500, spent: 450, remaining: 50, percent: 90, status: 'WARNING' },
+  { category: { id: 'c9', name: 'Lazer', color: '#ec4899' }, amount: 300, spent: 30, remaining: 270, percent: 10, status: 'OK' },
 ]
 
 afterEach(() => vi.restoreAllMocks())

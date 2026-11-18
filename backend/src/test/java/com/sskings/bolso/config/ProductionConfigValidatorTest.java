@@ -58,6 +58,29 @@ class ProductionConfigValidatorTest {
         assertThat(ProductionConfigValidator.databaseUserProblems("postgres", "bolso_owner")).anyMatch(p -> p.startsWith("DATABASE_USERNAME"));
         assertThat(ProductionConfigValidator.databaseUserProblems("bolso_app", "")).anyMatch(p -> p.startsWith("DATABASE_MIGRATION_USERNAME"));
         assertThat(ProductionConfigValidator.databaseUserProblems("", "bolso_owner")).anyMatch(p -> p.startsWith("DATABASE_USERNAME"));
+        assertThat(ProductionConfigValidator.databaseUserProblems(null, "bolso_owner")).anyMatch(p -> p.startsWith("DATABASE_USERNAME"));
+        assertThat(ProductionConfigValidator.databaseUserProblems("bolso_app", null)).anyMatch(p -> p.startsWith("DATABASE_MIGRATION_USERNAME"));
+        assertThat(ProductionConfigValidator.databaseUserProblems("bolso_app", "   ")).anyMatch(p -> p.startsWith("DATABASE_MIGRATION_USERNAME"));
+    }
+
+    @Test
+    @DisplayName("Segredo longo com uma das palavras de exemplo é recusado (cada palavra sozinha)")
+    void jwtSecretWords() {
+        String base = "Zx9!k2Lq#v8Rt4Wm6Ny1Pb3Hc7Jd5Fg0";
+        for (String word : new String[]{"CHANGE", "Test", "secret", "Example"}) {
+            assertThat(ProductionConfigValidator.problems(base + word, List.of("https://bolso.app.br"), "jdbc:postgresql://db/bolso"))
+                    .as(word).anyMatch(p -> p.startsWith("JWT_SECRET: parece de exemplo"));
+        }
+        assertThat(ProductionConfigValidator.problems("ababababababababababababababababab", List.of("https://bolso.app.br"), "jdbc:postgresql://db/bolso"))
+                .as("pouca variedade").anyMatch(p -> p.startsWith("JWT_SECRET: parece de exemplo"));
+    }
+
+    @Test
+    @DisplayName("Configuração correta: a aplicação sobe")
+    void validConfigStarts() {
+        new ProductionConfigValidator(
+                new BolsoProperties(new BolsoProperties.Jwt(GOOD_SECRET, 60), null, null, 1, new BolsoProperties.Cors(List.of("https://bolso.app.br")), null, null),
+                "jdbc:postgresql://db:5432/bolso", "bolso_app", "bolso_owner");
     }
 
     @Test
@@ -69,5 +92,16 @@ class ProductionConfigValidatorTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("JWT_SECRET").hasMessageContaining("CORS_ALLOWED_ORIGINS").hasMessageContaining("DATABASE_URL")
                 .hasMessageContaining("DATABASE_USERNAME");
+    }
+
+    @Test
+    @DisplayName("Fronteiras do segredo: 32 caracteres e 10 caracteres diferentes passam; 31 ou 9 diferentes, não")
+    void secretBoundaries() {
+        List<String> cors = List.of("https://bolso.app.br");
+        String ten = "Zx9!k2Lq#v";                                                 // 10 caracteres diferentes
+        assertThat(ProductionConfigValidator.problems((ten + ten + ten + "Zx"), cors, "jdbc:postgresql://db/bolso")).isEmpty();
+        assertThat(ProductionConfigValidator.problems((ten + ten + ten + "Z"), cors, "jdbc:postgresql://db/bolso")).anyMatch(p -> p.startsWith("JWT_SECRET: mínimo"));
+        String nine = "Zx9!k2Lq#";
+        assertThat(ProductionConfigValidator.problems((nine + nine + nine + nine), cors, "jdbc:postgresql://db/bolso")).anyMatch(p -> p.startsWith("JWT_SECRET: parece"));
     }
 }

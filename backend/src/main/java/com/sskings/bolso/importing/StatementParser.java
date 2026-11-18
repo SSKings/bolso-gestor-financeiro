@@ -160,8 +160,8 @@ public final class StatementParser {
             if (date == null) throw new ImportException("Invalid date on line " + lineNo);
             BigDecimal amount = amount(get(cols, cAmount));
             if (amount == null || amount.signum() == 0) throw new ImportException("Invalid amount on line " + lineNo);
-            String description = description(cDesc < 0 ? "" : get(cols, cDesc));
-            String rawId = cId < 0 ? "" : safeId(get(cols, cId));
+            String description = description(get(cols, cDesc));           // coluna ausente (-1) → ""
+            String rawId = safeId(get(cols, cId));
             String id = rawId.isEmpty() ? "csv:" + hash(date, amount, description, seen) : "csv:" + rawId;
             out.add(new ParsedEntry(date, amount, description, id));
         }
@@ -217,7 +217,11 @@ public final class StatementParser {
         boolean negative = false;
         if (s.startsWith("(") && s.endsWith(")")) { negative = true; s = s.substring(1, s.length() - 1); }
         if (s.endsWith("-")) { negative = true; s = s.substring(0, s.length() - 1); }
-        if (s.startsWith("-")) { negative = !negative; s = s.substring(1); }
+        if (s.startsWith("-")) {
+            if (negative) return null;                                    // "-12,50-" ou "-(5)": sinal duplicado é ambíguo
+            negative = true;
+            s = s.substring(1);
+        }
         else if (s.startsWith("+")) s = s.substring(1);
         if (!s.matches("[0-9.,]+")) return null;
         int lastDot = s.lastIndexOf('.'), lastComma = s.lastIndexOf(',');

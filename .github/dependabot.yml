@@ -7,7 +7,7 @@ updates:
     groups: { maven-minor-patch: { update-types: [minor, patch] } }
     ignore: [{ dependency-name: "*", update-types: ["version-update:semver-major"] }]
   - package-ecosystem: npm
-    directory: /frontend
+    directories: [/frontend, /frontend/tools/openapi]
     schedule: { interval: weekly }
     groups: { npm-minor-patch: { update-types: [minor, patch] } }
     ignore: [{ dependency-name: "*", update-types: ["version-update:semver-major"] }]

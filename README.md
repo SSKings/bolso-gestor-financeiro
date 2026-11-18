@@ -59,12 +59,15 @@ Detalhes, ameaças e o teste de cada controle: [docs/security.md](docs/security.
 
 | Parte | Comando | Testes | Cobertura (linhas / branches) |
 |---|---|---|---|
-| Backend | `cd backend && ./mvnw verify` | 166, contra **PostgreSQL de verdade** (Testcontainers) e um Telegram falso local | 98% / 92% |
-| Frontend | `cd frontend && npm run coverage` | 90 (Vitest + Testing Library) | 95% / 90% |
+| Backend | `cd backend && ./mvnw verify` | 190, contra **PostgreSQL de verdade** (Testcontainers) e um Telegram falso local | 99% / 94% |
+| Frontend | `cd frontend && npm run coverage` | 99 (Vitest + Testing Library), com fixtures tipadas pelo contrato da API | 98% / 91% |
 | Produção | `python3 deploy/e2e-smoke.py https://...` | 36 verificações ponta a ponta (nginx → API → PostgreSQL) | — |
 
-Desenvolvido com TDD: os testes de cada fatia foram escritos antes do código. O build **falha** se a cobertura cair
-(mínimo de 90% das linhas e 85% dos branches nas duas partes). As proteções críticas passaram por teste de mutação
+Desenvolvido com TDD: os testes de cada fatia foram escritos antes do código. O CI **barra** o PR se a cobertura cair
+(backend 97% / 92%, frontend 96% / 89%), se o teste de mutação das regras puras pegar menos de 92% dos defeitos, se o
+contrato da API mudar sem o front acompanhar, se uma migração antiga for editada, se a pilha de produção não subir por
+cima da versão anterior com dados, ou se as imagens tiverem vulnerabilidade grave corrigível — ver
+[docs/security.md](docs/security.md#proteção-contra-regressões-ci). As proteções críticas passaram por teste de mutação
 manual: cada defeito injetado (lançamento lido sem filtrar o espaço, papel de dono não checado, token sem versão,
 convite reutilizável, último dono saindo, compra no dia do fechamento na fatura errada, pagamento contado como gasto,
 número completo do cartão aceito, conta fixa confirmada duas vezes, previsão sem as contas atrasadas, extrato
@@ -81,12 +84,22 @@ cd frontend && npm ci && npm run dev      # app em http://localhost:5173 (abre t
 
 Documentação interativa da API (só em dev): http://localhost:8080/swagger-ui.html
 
+**Mudou a API?** O teste de contrato vai falhar até você atualizar os dois lados:
+
+```bash
+cd backend && CONTRACT_UPDATE=1 ./mvnw test -Dtest=ApiContractTest   # regrava docs/openapi.json
+cd ../frontend && npm run contract && npx tsc -b                     # regera os tipos; o tsc aponta o que quebrou
+```
+
+Banco: nunca edite uma migração existente — crie a próxima (`V<n+1>__descricao.sql`).
+
 ## Produção
 
 ```bash
 cd deploy
 cp .env.prod.example .env.prod      # preencha (openssl rand ... para as senhas e o JWT_SECRET)
 mkdir certs && cp /caminho/fullchain.pem /caminho/privkey.pem certs/
+sudo chown 101 certs/privkey.pem && chmod 600 certs/privkey.pem   # o nginx roda sem root (uid 101) e precisa ler a chave
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 ```
 

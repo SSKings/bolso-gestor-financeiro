@@ -32,6 +32,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private record Window(long minute, AtomicInteger count) {}
 
+    int tracked() {
+        return windows.size();
+    }
+
     static boolean limited(String method, String path) {
         return "POST".equals(method) && (path.startsWith("/api/auth/") || path.startsWith("/api/invites/"));
     }
@@ -67,7 +71,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         if (ip == null || !ip.contains(":")) return String.valueOf(ip);
         try {
             byte[] b = java.net.InetAddress.getByName(ip).getAddress();   // literal: getRemoteAddr nunca traz nome
-            if (b.length != 16) return ip;
+            if (b.length != 16) return java.net.InetAddress.getByAddress(b).getHostAddress();   // ::ffff:1.2.3.4 → 1.2.3.4
             return String.format("%02x%02x:%02x%02x:%02x%02x:%02x%02x::/64", b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7]);
         } catch (java.net.UnknownHostException e) {
             return ip;

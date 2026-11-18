@@ -120,3 +120,20 @@ foi arquivada é ignorada; regra de despesa não vale para receita (cai em "Outr
 - **Lembrete diário** das contas fixas atrasadas, de hoje e de amanhã: rodada de hora em hora das 8h às 21h, no máximo
   uma mensagem por dia e só se houver algo; marcado depois do envio (se o Telegram falhar, tenta na próxima hora).
 
+## ADR-014 — Contrato da API gerado do código (OpenAPI → TypeScript)
+
+- O backend gera a especificação OpenAPI (springdoc) num teste e compara com `docs/openapi.json`, versionado. O front
+  gera os tipos de `schema.d.ts` a partir desse arquivo; `types.ts` só dá nomes a eles. Uma mudança na API exige
+  atualizar o contrato, e o `tsc` aponta cada uso no front que quebrou.
+- **Respostas**: todo campo é obrigatório, salvo os marcados `@Schema(nullable = true)` — o front sabe exatamente o
+  que pode faltar. **Requisições** seguem a validação (`@NotNull`…). Valores em dinheiro saem do front como texto
+  (`Money<>`), nunca como número de ponto flutuante.
+- Um teste impede dois records com o mesmo nome simples (o OpenAPI os juntaria sem aviso).
+- O gerador fica em `frontend/tools/openapi`, isolado (exige TypeScript 5; o app usa o 7), com lockfile próprio.
+
+## ADR-015 — A `main` só recebe o que passou por toda a rede de proteção
+
+Proteção de branch exigindo os jobs Backend, Frontend, Migrações, Produção e CodeQL, sem push direto nem force push,
+valendo para administradores. O job de produção sobe a pilha real (TLS, papéis do banco, nginx) — a versão anterior
+primeiro, com dados, e a nova por cima —, então Dockerfile, nginx, permissões e migrações são testados antes do merge,
+não no deploy.

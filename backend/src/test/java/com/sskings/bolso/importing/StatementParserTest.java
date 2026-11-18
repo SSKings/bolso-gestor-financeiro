@@ -193,4 +193,73 @@ class StatementParserTest {
         assertThat(StatementParser.amount("1.234.567")).isEqualByComparingTo("1234567");
         assertThat(StatementParser.amount("12,3")).isEqualByComparingTo("12.30");
     }
+
+    // ---- fronteiras (achadas pelo teste de mutação) ----
+
+    @Test
+    @DisplayName("Detecta OFX só pelo cabeçalho OFXHEADER ou só pela tag <ofx> (minúscula)")
+    void ofxDetection() {
+        assertThat(parse("OFXHEADER:100\n<STMTTRN><DTPOSTED>20261103<TRNAMT>-1.00</STMTTRN>")).hasSize(1);
+        assertThat(parse("<ofx><stmttrn><dtposted>20261103<trnamt>-1.00</stmttrn></ofx>")).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("Teto exato: R$ 999.999.999,99 entra (OFX e CSV); um centavo a mais, não")
+    void maxAmountBoundary() {
+        assertThat(parse(ofx("<DTPOSTED>20261103<TRNAMT>-999999999.99")).get(0).amount()).isEqualByComparingTo("-999999999.99");
+        assertThat(StatementParser.amount("999.999.999,99")).isEqualByComparingTo("999999999.99");
+        assertThat(StatementParser.amount("1.000.000.000,00")).isNull();
+    }
+
+    @Test
+    @DisplayName("Cada nome de coluna reconhecido sozinho (data, valor, descrição, identificador), inclusive na primeira posição")
+    void eachColumnAlias() {
+        for (String date : new String[]{"date", "dt", "data", "Data da compra"}) {
+            assertThat(parse(date + ",valor\n03/11/2026,-1\n").get(0).date()).as(date).isEqualTo(LocalDate.of(2026, 11, 3));
+        }
+        for (String amount : new String[]{"valor", "amount", "value", "Valor (R$)"}) {
+            assertThat(parse("data," + amount + "\n03/11/2026,-7\n").get(0).amount()).as(amount).isEqualByComparingTo("-7");
+        }
+        for (String desc : new String[]{"descricao", "Descrição", "historico", "Histórico", "title", "memo", "lancamento", "Estabelecimento"}) {
+            assertThat(parse(desc + ",data,valor\nLoja X,03/11/2026,-1\n").get(0).description()).as(desc).isEqualTo("Loja X");
+        }
+        for (String id : new String[]{"id", "Identificador"}) {
+            assertThat(parse(id + ",data,valor\nabc-1,03/11/2026,-1\n").get(0).externalId()).as(id).isEqualTo("csv:abc-1");
+        }
+    }
+
+    @Test
+    @DisplayName("Cabeçalho sem coluna de data ou de valor não é extrato")
+    void requiredColumns() {
+        assertThatThrownBy(() -> parse("descricao,valor\nX,-1\n")).hasMessage("Unsupported file format");
+        assertThatThrownBy(() -> parse("data,descricao\n03/11/2026,X\n")).hasMessage("Unsupported file format");
+    }
+
+    @Test
+    @DisplayName("Linha mais curta que o cabeçalho: coluna que falta vira vazia (descrição padrão)")
+    void shortRow() {
+        assertThat(parse("data,valor,descricao\n03/11/2026,-1\n").get(0).description()).isEqualTo("Sem descrição");
+    }
+
+    @Test
+    @DisplayName("Fronteiras de tamanho: descrição de 140 e identificador de 76 ficam inteiros")
+    void lengthBoundaries() {
+        String d140 = "d".repeat(140);
+        assertThat(parse("data,descricao,valor\n03/11/2026," + d140 + ",-1\n").get(0).description()).isEqualTo(d140);
+        String id76 = "9".repeat(76);
+        assertThat(parse(ofx("<DTPOSTED>20261103<TRNAMT>-1<FITID>" + id76)).get(0).externalId()).isEqualTo("ofx:" + id76);
+    }
+
+    @Test
+    @DisplayName("Valores ambíguos recusados: sinal duplicado, parênteses pela metade, separador sobrando no meio")
+    void ambiguousAmounts() {
+        for (String bad : new String[]{"-12,50-", "(-5)", "(5,00)-", "12,50)", "1,2,34", "1.2.34", ",50", ".5", "1.234,", "(5,00", "5,00)"}) {
+            assertThat(StatementParser.amount(bad)).as(bad).isNull();
+        }
+        assertThat(StatementParser.amount("12,50-")).isEqualByComparingTo("-12.50");
+        assertThat(StatementParser.amount("(12.50)")).isEqualByComparingTo("-12.50");
+        assertThat(StatementParser.amount("1,5")).isEqualByComparingTo("1.5");
+        assertThat(StatementParser.amount("1.234.567,89")).isEqualByComparingTo("1234567.89");
+        assertThat(StatementParser.amount("1,234,567.89")).isEqualByComparingTo("1234567.89");
+    }
 }

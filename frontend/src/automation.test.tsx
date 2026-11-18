@@ -5,6 +5,7 @@ import { ACCOUNTS, CATEGORIES, ME, WS, mockApi } from './test/mockApi'
 import { renderApp } from './test/render'
 import { safeTelegramLink } from './pages/TelegramSection'
 import { translate } from './lib/messages'
+import type { ImportPreview, ImportPreviewEntry, Rule } from './api/types'
 
 const base = {
   'GET /api/me': ME,
@@ -12,18 +13,19 @@ const base = {
   [`GET /api/workspaces/${WS}/categories`]: CATEGORIES,
   [`GET /api/workspaces/${WS}/cards`]: [],
 }
-const RULES = [
+const RULES: Rule[] = [
   { id: 'r1', pattern: 'uber', category: { id: 'c2', name: 'Alimentação', color: '#f97316' } },
   { id: 'r2', pattern: 'supermercado', category: { id: 'c1', name: 'Mercado', color: '#22c55e' } },
 ]
-const entry = (o: Record<string, unknown>) => ({ type: 'EXPENSE', duplicate: false, similar: false, suggestedCategory: null, ...o })
-const PREVIEW = {
+const entry = (o: Partial<ImportPreviewEntry> & Pick<ImportPreviewEntry, 'externalId' | 'date' | 'amount' | 'description'>): ImportPreviewEntry =>
+  ({ type: 'EXPENSE', duplicate: false, similar: false, suggestedCategory: null, ...o })
+const PREVIEW: ImportPreview = {
   accountId: 'a2', total: 4, duplicates: 1,
   entries: [
-    entry({ externalId: 'ofx:1', date: '2026-11-03', amount: '35.90', description: 'PADARIA', suggestedCategory: { id: 'c2', name: 'Alimentação', color: '#f97316' } }),
-    entry({ externalId: 'ofx:2', date: '2026-11-05', amount: '3500.00', type: 'INCOME', description: 'SALARIO', suggestedCategory: { id: 'c4', name: 'Salário', color: '#16a34a' } }),
-    entry({ externalId: 'ofx:3', date: '2026-11-06', amount: '23.10', description: 'UBER', duplicate: true }),
-    entry({ externalId: 'ofx:4', date: '2026-11-07', amount: '10.00', description: 'CAFE', similar: true, suggestedCategory: { id: 'c2', name: 'Alimentação', color: '#f97316' } }),
+    entry({ externalId: 'ofx:1', date: '2026-11-03', amount: 35.9, description: 'PADARIA', suggestedCategory: { id: 'c2', name: 'Alimentação', color: '#f97316' } }),
+    entry({ externalId: 'ofx:2', date: '2026-11-05', amount: 3500, type: 'INCOME', description: 'SALARIO', suggestedCategory: { id: 'c4', name: 'Salário', color: '#16a34a' } }),
+    entry({ externalId: 'ofx:3', date: '2026-11-06', amount: 23.1, description: 'UBER', duplicate: true }),
+    entry({ externalId: 'ofx:4', date: '2026-11-07', amount: 10, description: 'CAFE', similar: true, suggestedCategory: { id: 'c2', name: 'Alimentação', color: '#f97316' } }),
   ],
 }
 const CODE = 'A'.repeat(43)
@@ -107,7 +109,7 @@ describe('importar extrato', () => {
   })
 
   it('linha marcada sem categoria não vai; desmarcar tudo desliga o botão; resultado com repetidas', async () => {
-    const preview = { ...PREVIEW, entries: [entry({ externalId: 'x1', date: '2026-11-03', amount: '5.00', description: 'SEM REGRA' })] }
+    const preview = { ...PREVIEW, entries: [entry({ externalId: 'x1', date: '2026-11-03', amount: 5, description: 'SEM REGRA' })] }
     const api = mockApi({ ...base, [`POST /api/workspaces/${WS}/imports/preview`]: preview,
       [`POST /api/workspaces/${WS}/imports/commit`]: { imported: 1, skipped: 1 } })
     await choose(new File(['x'], 'a.csv'))

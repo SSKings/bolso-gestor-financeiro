@@ -32,7 +32,7 @@ public final class CardDtos {
             @NotNull @Digits(integer = 12, fraction = 2) @DecimalMin("0") @DecimalMax("999999999.99") BigDecimal creditLimit,
             Boolean archived) {}
 
-    public record CardView(UUID id, String name, String last4, int closingDay, int dueDay, BigDecimal creditLimit,
+    public record CardView(UUID id, String name, @io.swagger.v3.oas.annotations.media.Schema(nullable = true) String last4, int closingDay, int dueDay, BigDecimal creditLimit,
                            BigDecimal available, boolean archived) {}
 
     public record PurchaseRequest(

@@ -353,4 +353,20 @@ class TelegramIntegrationTest extends IntegrationTest {
         assertThat(commands.handle(owner.chat() + 3, true, "/start " + biaCode)).startsWith(INVALID);
         assertThat(links.findByChatId(owner.chat() + 3)).isEmpty();
     }
+
+    @Test
+    @DisplayName("Sem valor no /despesa, receita sem descrição, todas as contas arquivadas e conta vencendo em alguns dias")
+    void remainingBranches() throws Exception {
+        Fx f = linked();
+        assertThat(say(f, "/despesa")).startsWith("Use: <code>/despesa");
+        assertThat(say(f, "/receita 50")).contains("Receita pelo Telegram");
+        call(post(ws(f.s(), "/recurrences")), f.s().token(), Map.of("type", "EXPENSE", "description", "Seguro", "amount", "80.00",
+                "dayOfMonth", 14, "categoryId", f.cats().get("Moradia/EXPENSE"), "accountId", f.account(), "startMonth", "2026-11"));
+        assertThat(say(f, "/contas")).contains("Seguro — R$ 80,00 (vence 14/11)");
+        for (JsonNode a : body(call(get(ws(f.s(), "/accounts")), f.s().token(), null))) {
+            call(put(ws(f.s(), "/accounts/" + a.get("id").asText())), f.s().token(), Map.of("name", a.get("name").asText(),
+                    "type", a.get("type").asText(), "initialBalance", a.get("initialBalance").asText(), "archived", true));
+        }
+        assertThat(say(f, "/saldo")).isEqualTo("Nenhuma conta ativa.");
+    }
 }

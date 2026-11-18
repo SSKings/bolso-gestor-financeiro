@@ -73,6 +73,33 @@ Este documento lista cada controle e o teste que o comprova. Muitos vêm das sei
   `TELEGRAM_ENABLED=true` e token inválido, a API não sobe, e o token não aparece no log. No banco, o usuário da API recebeu "permission denied" para `CREATE TABLE`, `DROP`,
   `ALTER`, `flyway_schema_history` e `COPY ... TO PROGRAM`.
 
+## Proteção contra regressões (CI)
+
+Todo PR para a `main` só entra com tudo verde (proteção de branch, valendo também para administradores):
+
+| Etapa | O que barra |
+|---|---|
+| Backend | 190 testes contra PostgreSQL real; cobertura mínima de 97% das linhas e 92% dos ramos |
+| Mutação (PIT) | Regras puras (faturas, extrato, senha, limite por IP, validador de produção) com no mínimo 92% dos defeitos injetados pegos (hoje 94,9%; os que sobram são equivalentes) |
+| Contrato da API | A especificação gerada do código precisa ser igual a `docs/openapi.json`; o front gera os tipos dela, então campo renomeado ou removido vira erro de compilação lá |
+| Frontend | 99 testes com as fixtures tipadas pelo contrato; cobertura mínima de 96% / 89%; `npm audit`; lint |
+| Migrações | Migração que já está na `main` não pode ser editada, renomeada ou apagada |
+| Produção | Sobe a versão da `main`, cria dados, sobe a do PR por cima (migrações sobre dados reais) e roda o E2E de produção (36 verificações) |
+| Imagens | Trivy barra vulnerabilidade HIGH/CRITICAL corrigível nas imagens da API e do nginx; exceções só em `.trivyignore.yaml`, com justificativa e validade |
+| CodeQL | Análise estática (Java e TypeScript) em todo PR e toda semana |
+
+Dependabot: atualizações semanais e alertas e correções automáticas de vulnerabilidade ligados.
+
+**Achados ao montar essa rede** (corrigidos, com teste que falha sem a correção):
+- **Senha disfarçada passando**: `99s3nh499` era aceita — o "4" final do disfarce sumia junto com os dígitos.
+- **Valor com sinal duplicado**: `-12,50-` no extrato virava **+12,50** (os sinais se anulavam); agora é recusado.
+- **Mesmo IPv4 com dois limites**: `::ffff:1.2.3.4` e `1.2.3.4` contavam separados no limite por IP.
+- **Limite de corpo sem `Content-Length`** (chunked) funcionava, mas nenhum teste garantia: agora há um com Tomcat real.
+- **Contrato**: os tipos do front diziam que os valores vinham como texto (vêm como número) e não tinham o campo
+  `recurrence` do lançamento; o painel simulado nos testes não tinha `cards`.
+- **Imagem do nginx** com 13 vulnerabilidades do Alpine (1 crítica): a imagem oficial ainda não tinha as correções;
+  o build aplica as atualizações de segurança e remove o `curl`, que não é usado.
+
 ## Riscos aceitos
 
 - **Token no localStorage**: o app abre logado no celular. A mitigação é não haver XSS (React escapa tudo, sem
@@ -81,4 +108,7 @@ Este documento lista cada controle e o teste que o comprova. Muitos vêm das sei
   etapas — fica para quando houver envio de e-mail.
 - **Bloqueio de conta permite travar a conta de outra pessoa por alguns minutos** (equilíbrio usual; o limite por IP
   reduz o abuso).
+- **Spring Framework 6.2 (Spring Boot 3.5) fora do suporte gratuito**: duas falhas críticas (CVE-2026-47884 e
+  CVE-2026-47890) só têm correção no Spring 7. Não são exploráveis aqui — exigem `XsltView` ou SSE com fragmentos de
+  view, e a API é só JSON. Ficam como exceção no scan até **28/02/2027**; antes disso, migrar para Spring Boot 4.
 - **Limite por IP em memória**: vale por instância; com várias réplicas, o nginx continua limitando.

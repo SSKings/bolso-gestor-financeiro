@@ -1,0 +1,11 @@
+{
+  "name": "Bolso",
+  "short_name": "Bolso",
+  "description": "Finanças pessoais e compartilhadas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#059669",
+  "lang": "pt-BR",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

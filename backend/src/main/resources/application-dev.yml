@@ -1,0 +1,18 @@
+# Desenvolvimento: `./mvnw spring-boot:run` sobe o PostgreSQL do compose.yaml (spring-boot-docker-compose).
+spring:
+  docker:
+    compose:
+      file: compose.yaml
+      lifecycle-management: start-only
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+bolso:
+  jwt:
+    secret: ${JWT_SECRET:${random.value}${random.value}}   # aleatório a cada start: tokens de dev não sobrevivem ao restart
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}

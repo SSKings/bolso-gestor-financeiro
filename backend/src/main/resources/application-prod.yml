@@ -1,0 +1,17 @@
+server:
+  forward-headers-strategy: native    # atrás do nginx: IP real do cliente para o rate limit
+
+logging:
+  level:
+    root: INFO
+  structured:
+    format:
+      console: ecs
+
+spring:
+  flyway:
+    # migrações com o DONO das tabelas; a API (spring.datasource.username) só tem DML
+    user: ${DATABASE_MIGRATION_USERNAME:}
+    password: ${DATABASE_MIGRATION_PASSWORD:}
+    # + callback só de PostgreSQL: tira do usuário da API o acesso ao histórico de migrações
+    locations: classpath:db/migration,classpath:db/callback-postgres

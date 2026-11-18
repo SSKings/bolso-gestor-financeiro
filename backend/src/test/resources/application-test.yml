@@ -1,0 +1,5 @@
+bolso:
+  jwt:
+    secret: test-secret-only-for-tests-0123456789-abcdefghijklmnopqrstuvwxyz
+  cors:
+    allowed-origins: http://localhost:5173

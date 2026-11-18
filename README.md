@@ -1,128 +1,101 @@
-# API Gestor Financeiro
+# Bolso
 
 <p>
-  <img src="https://github.com/SSKings/gestor-financeiro/actions/workflows/ci.yml/badge.svg" alt="CI"/>
-  <img src="https://img.shields.io/badge/Java-17-ED8B00?style=flat-square&logo=openjdk&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Spring%20Boot-3.2.5-6DB33F?style=flat-square&logo=springboot&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Spring%20Security-JWT-6DB33F?style=flat-square&logo=springsecurity&logoColor=white"/>
-  <img src="https://img.shields.io/badge/PostgreSQL-Production-4169E1?style=flat-square&logo=postgresql&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker&logoColor=white"/>
+  <img src="https://github.com/SSKings/bolso-gestor-financeiro/actions/workflows/ci.yml/badge.svg" alt="CI"/>
+  <img src="https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white" alt="Java 17"/>
+  <img src="https://img.shields.io/badge/Spring%20Boot-3.5-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 3.5"/>
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19"/>
 </p>
 
-API REST para gerenciamento de finanças pessoais. Permite registro de usuários com autenticação JWT, controle de contas bancárias, cartões de crédito e lançamentos financeiros (receitas e despesas), com suporte a roles e logout seguro.
+Finanças pessoais **e compartilhadas**, feitas para usar no dia a dia, pelo celular. Registre um gasto em segundos,
+divida as contas da casa com quem mora com você e saiba, a qualquer momento, quanto entrou, quanto saiu e para onde
+foi o dinheiro no mês.
 
-## Funcionalidades
+## O que já dá para fazer
 
-- **Autenticação JWT**: registro, login e logout com token blacklist (tokens invalidados no logout)
-- **Controle de acesso**: roles `ADMIN` e `USER` via Spring Security
-- **Gestão de Contas**: CRUD de contas bancárias por usuário
-- **Gestão de Cartões**: CRUD de cartões de crédito por usuário
-- **Lançamentos**: registro de receitas e despesas com filtragem por tipo e fonte
-- **Tipos e Fontes**: cadastro de tipos e fontes de lançamento customizados
+- **Lançamento rápido**: despesa, receita ou transferência entre contas, com valor digitado como em app de banco
+- **Espaços compartilhados**: um espaço "Pessoal" e outros para a casa, uma viagem ou um negócio. Convide alguém por
+  um link; cada lançamento mostra quem lançou
+- **Painel do mês**: entradas, saídas, resultado, gastos por categoria e saldo de cada conta
+- **Contas** (corrente, poupança, dinheiro, investimento) com **saldo sempre calculado** a partir dos lançamentos
+- **Categorias** prontas e editáveis; conta e categoria arquivadas saem das listas sem apagar o histórico
+- **Cartão de crédito como na vida real**: compra à vista ou parcelada (até 48×) caindo nas faturas certas pelo dia de
+  fechamento, fatura com vencimento e status, pagamento a partir de uma conta e limite disponível. O gasto conta no mês
+  da fatura e o pagamento não é contado de novo
+- **App instalável** no celular (PWA)
 
-## Stack
+Próximas fases: contas fixas e orçamento por categoria, importação de extrato (OFX/CSV) e lançamento pelo Telegram —
+ver [docs/roadmap.md](docs/roadmap.md).
 
-| Tecnologia | Uso |
-|-----------|-----|
-| Java 17 + Spring Boot 3.2.5 | Core da aplicação |
-| Spring Security + JWT (Auth0) | Autenticação e autorização |
-| Spring Data JPA + Hibernate | Acesso ao banco de dados |
-| H2 Database | Banco em memória (desenvolvimento/teste) |
-| PostgreSQL | Banco relacional (produção) |
-| SpringDoc OpenAPI 2.5.0 | Documentação Swagger UI |
-| Docker + Docker Compose | Containerização |
-| Lombok | Redução de boilerplate |
+## Segurança desde o começo
 
-## Como executar
+- O usuário vem **sempre do token**, nunca do corpo da requisição; toda rota de espaço confere a participação a cada
+  chamada (quem é removido perde o acesso na hora). Quem não participa recebe 404 — não descobre nem que o espaço existe
+- Isolamento entre espaços **também no banco**: chaves estrangeiras compostas impedem um lançamento de apontar para
+  conta ou categoria de outro espaço, mesmo com um erro no código
+- Senha com política e lista de senhas comuns, bloqueio progressivo por conta, limite por IP, tokens revogáveis
+  (logout e troca de senha derrubam todas as sessões), convites de uso único guardados só como hash
+- O cartão guarda **só os 4 últimos dígitos**: a API recusa o número completo e o banco não tem onde guardá-lo
+- Produção com três usuários no PostgreSQL (a API só tem DML), containers sem root e somente leitura, nginx com TLS e
+  CSP, logs com rotação; a API não sobe com configuração insegura
 
-### Com Docker (recomendado)
-
-```bash
-git clone https://github.com/SSKings/gestor-financeiro.git
-cd gestor-financeiro
-
-# Cria e sobe a API + PostgreSQL
-docker-compose up --build
-```
-
-A API estará disponível em `http://localhost:8080`.
-
-### Local (modo desenvolvimento)
-
-```bash
-./mvnw spring-boot:run -Dspring.profiles.active=development
-```
-
-Usa banco H2 em memória — nenhuma configuração extra necessária.
-
-### Variáveis de ambiente
-
-| Variável | Descrição | Obrigatória |
-|----------|-----------|-------------|
-| `JWT_SECRET` | Chave secreta para assinar tokens JWT (mín. 32 chars) | Produção |
-| `DB_URL` | URL do PostgreSQL (ex: `jdbc:postgresql://localhost:5432/gestor`) | Produção |
-| `DB_USERNAME` | Usuário do banco | Produção |
-| `DB_PASSWORD` | Senha do banco | Produção |
-
-## Endpoints principais
-
-### Autenticação
-
-| Método | Endpoint | Descrição | Auth? |
-|--------|----------|-----------|-------|
-| `POST` | `/auth/register` | Registro de novo usuário | Não |
-| `POST` | `/auth/login` | Login — retorna JWT | Não |
-| `POST` | `/auth/logout` | Logout — invalida o token | Sim |
-
-### Recursos protegidos (requer `Authorization: Bearer <token>`)
-
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| `GET/POST` | `/contas` | Listar / criar contas |
-| `GET/PUT/DELETE` | `/contas/{id}` | Buscar / atualizar / remover conta |
-| `GET/POST` | `/cartoes` | Listar / criar cartões |
-| `GET/PUT/DELETE` | `/cartoes/{id}` | Buscar / atualizar / remover cartão |
-| `GET/POST` | `/lancamentos` | Listar / registrar lançamentos |
-| `GET/PUT/DELETE` | `/lancamentos/{id}` | Buscar / atualizar / remover lançamento |
-| `GET/POST` | `/tipos-lancamento` | Tipos de lançamento |
-| `GET/POST` | `/fontes-lancamento` | Fontes de lançamento |
-
-Documentação completa e interativa: **`http://localhost:8080/swagger-ui.html`**
-
-## Arquitetura
-
-```
-src/main/java/com/sskings/api/gestor/financeiro/
-├── controllers/        # Endpoints REST
-├── services/           # Regras de negócio
-├── repositories/       # Acesso ao banco (Spring Data JPA)
-├── models/             # Entidades JPA
-├── dto/                # DTOs organizados por domínio
-│   ├── usuario/
-│   ├── conta/
-│   ├── cartao/
-│   └── lancamento/
-├── security/           # JWT filter, SecurityConfig, TokenBlackList
-├── exception/          # Exceções de negócio customizadas
-├── errors/             # Handler global de erros (ExceptionHandler)
-└── documentation/      # Configuração do Swagger
-```
-
-## Perfis de execução
-
-| Perfil | Banco | Ativação |
-|--------|-------|----------|
-| `development` | H2 (console em `/h2-console`) | `-Dspring.profiles.active=development` |
-| `production` | PostgreSQL | variáveis de ambiente + Docker |
-| `test` | H2 (isolado) | automático nos testes |
+Detalhes, ameaças e o teste de cada controle: [docs/security.md](docs/security.md). Decisões: [docs/adr.md](docs/adr.md).
 
 ## Testes
 
+| Parte | Comando | Testes | Cobertura (linhas / branches) |
+|---|---|---|---|
+| Backend | `cd backend && ./mvnw verify` | 102, contra **PostgreSQL de verdade** (Testcontainers) | 98% / 91% |
+| Frontend | `cd frontend && npm run coverage` | 66 (Vitest + Testing Library) | 97% / 90% |
+| Produção | `python3 deploy/e2e-smoke.py https://...` | 19 verificações ponta a ponta (nginx → API → PostgreSQL) | — |
+
+Desenvolvido com TDD: os testes de cada fatia foram escritos antes do código. O build **falha** se a cobertura cair
+(mínimo de 90% das linhas e 85% dos branches nas duas partes). As proteções críticas passaram por teste de mutação
+manual: cada defeito injetado (lançamento lido sem filtrar o espaço, papel de dono não checado, token sem versão,
+convite reutilizável, último dono saindo, compra no dia do fechamento na fatura errada, pagamento contado como gasto,
+número completo do cartão aceito…) foi pego por um teste.
+
+## Rodando localmente
+
+Pré-requisitos: Java 17, Node 22.22+, Docker.
+
 ```bash
-./mvnw test
+cd backend && ./mvnw spring-boot:run      # sobe o PostgreSQL de dev sozinho (compose.yaml) e a API em :8080
+cd frontend && npm ci && npm run dev      # app em http://localhost:5173 (abre também de outros aparelhos da rede)
 ```
 
-Testes implementados:
-- `UsuarioServiceTest` — 14 casos de teste com Mockito (BDD style)
-- `UsuarioRepositoryTest` — testes de repositório com H2
-- `SecurityConfigTest` — validação das configurações de segurança
+Documentação interativa da API (só em dev): http://localhost:8080/swagger-ui.html
+
+## Produção
+
+```bash
+cd deploy
+cp .env.prod.example .env.prod      # preencha (openssl rand ... para as senhas e o JWT_SECRET)
+mkdir certs && cp /caminho/fullchain.pem /caminho/privkey.pem certs/
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+```
+
+Sobe PostgreSQL (rede interna, sem porta exposta), API (perfil `prod`) e nginx (TLS, front-end e proxy de `/api`).
+Depois de subir, `python3 deploy/e2e-smoke.py https://seu-dominio --verify-tls` confere a pilha de ponta a ponta (cria
+dados de teste: rode num ambiente de homologação).
+
+## Stack
+
+**Backend:** Java 17 · Spring Boot 3.5 · Spring Security · JWT · Spring Data JPA · Flyway · PostgreSQL ·
+Testcontainers · JaCoCo
+**Frontend:** React 19 · TypeScript · Vite · Tailwind CSS · React Router · Vitest · Testing Library
+**Infra:** Docker · nginx · GitHub Actions · Dependabot
+
+## Estrutura
+
+```
+backend/    API: auth, workspace (espaços e convites), account, category, transaction, card, dashboard
+frontend/   SPA/PWA em React
+deploy/     produção: compose, nginx, papéis do banco
+docs/       segurança, decisões e roadmap
+```
+
+---
+
+Este repositório começou como "API Gestor Financeiro", um CRUD de contas e lançamentos; o histórico continua no git.
+O Bolso é a reescrita com foco em uso real, finanças compartilhadas e segurança.

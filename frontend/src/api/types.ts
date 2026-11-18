@@ -15,7 +15,25 @@ export interface Ref { id: string; name: string }
 export interface Transaction {
   id: string; type: TransactionType; amount: string; date: string; description: string
   account: Ref; toAccount?: Ref; category?: Ref & { color: string }; card?: Ref; statement?: string; createdBy?: Ref; createdAt: string
+  source?: TransactionSource
 }
+export type TransactionSource = 'MANUAL' | 'IMPORT' | 'TELEGRAM'
+
+export interface Rule { id: string; pattern: string; category: Ref & { color: string } }
+
+export interface ImportPreviewEntry {
+  externalId: string; date: string; amount: string; type: 'INCOME' | 'EXPENSE'; description: string
+  suggestedCategory: (Ref & { color: string }) | null; duplicate: boolean; similar: boolean
+}
+export interface ImportPreview { accountId: string; entries: ImportPreviewEntry[]; total: number; duplicates: number }
+export interface ImportEntry { externalId: string; date: string; amount: string; type: 'INCOME' | 'EXPENSE'; description: string; categoryId: string }
+export interface ImportResult { imported: number; skipped: number }
+
+export interface TelegramStatus {
+  available: boolean; botUsername: string | null
+  link: { workspace: Ref; account: Ref; linkedAt: string } | null
+}
+export interface TelegramCode { code: string; link: string; expiresAt: string }
 export interface TransactionPage { items: Transaction[]; total: number; page: number; size: number }
 export interface TransactionInput {
   type: TransactionType; amount: string; date: string; description: string

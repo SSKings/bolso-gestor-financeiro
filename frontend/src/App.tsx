@@ -16,6 +16,8 @@ import { CardsPage } from './pages/CardsPage'
 import { CardStatementPage } from './pages/CardStatementPage'
 import { RecurrencesPage } from './pages/RecurrencesPage'
 import { BudgetsPage } from './pages/BudgetsPage'
+import { RulesPage } from './pages/RulesPage'
+import { ImportPage } from './pages/ImportPage'
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { token, me } = useAuth()
@@ -43,6 +45,8 @@ export function App() {
             <Route path="cartoes/:cardId" element={<CardStatementPage />} />
             <Route path="contas-fixas" element={<RecurrencesPage />} />
             <Route path="orcamentos" element={<BudgetsPage />} />
+            <Route path="regras" element={<RulesPage />} />
+            <Route path="importar" element={<ImportPage />} />
             <Route path="espaco" element={<WorkspacePage />} />
             <Route path="perfil" element={<ProfilePage />} />
           </Route>

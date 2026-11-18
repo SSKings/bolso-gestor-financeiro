@@ -1,7 +1,8 @@
 import { api } from './client'
 import type {
   Account, AccountType, AuthResponse, Card, CardInput, Category, CategoryKind, Dashboard, Invite, InviteCreated, Me, Member,
-  PurchaseInput, Statement, Budget, Forecast, Occurrence, Recurrence, RecurrenceInput,
+  PurchaseInput, Statement, Budget, Forecast, Occurrence, Recurrence, RecurrenceInput, Rule, ImportPreview, ImportEntry, ImportResult,
+  TelegramStatus, TelegramCode,
   TransactionInput, TransactionPage, TransactionType, WorkspaceSummary,
 } from './types'
 
@@ -75,4 +76,24 @@ export const planning = {
   setBudget: (id: string, categoryId: string, amount: string) => api.put<Budget>(ws(id, `/budgets/${encodeURIComponent(categoryId)}`), { amount }),
   deleteBudget: (id: string, categoryId: string) => api.del(ws(id, `/budgets/${encodeURIComponent(categoryId)}`)),
   forecast: (id: string) => api.get<Forecast>(ws(id, '/forecast')),
+}
+
+export const automation = {
+  rules: (id: string) => api.get<Rule[]>(ws(id, '/rules')),
+  createRule: (id: string, body: { pattern: string; categoryId: string }) => api.post<Rule>(ws(id, '/rules'), body),
+  deleteRule: (id: string, ruleId: string) => api.del(ws(id, `/rules/${encodeURIComponent(ruleId)}`)),
+  previewImport: (id: string, accountId: string, file: File) => {
+    const form = new FormData()
+    form.append('accountId', accountId)
+    form.append('file', file)
+    return api.upload<ImportPreview>(ws(id, '/imports/preview'), form)
+  },
+  commitImport: (id: string, accountId: string, entries: ImportEntry[]) =>
+    api.post<ImportResult>(ws(id, '/imports/commit'), { accountId, entries }),
+}
+
+export const telegram = {
+  status: () => api.get<TelegramStatus>('/api/me/telegram'),
+  code: (workspaceId: string, accountId: string) => api.post<TelegramCode>('/api/me/telegram/code', { workspaceId, accountId }),
+  unlink: () => api.del('/api/me/telegram'),
 }

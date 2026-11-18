@@ -40,11 +40,12 @@ export class ApiError extends Error {
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json' }
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  const isForm = body instanceof FormData                              // arquivo: o navegador monta o multipart
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
   if (token) headers.Authorization = `Bearer ${token}`
   let res: Response
   try {
-    res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) })
+    res = await fetch(path, { method, headers, body: body === undefined ? undefined : isForm ? body : JSON.stringify(body) })
   } catch {
     throw new ApiError(0, 'Sem conexão com o servidor. Confira a internet e tente de novo.')
   }
@@ -65,4 +66,5 @@ export const api = {
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
   del: <T = void>(path: string) => request<T>('DELETE', path),
+  upload: <T>(path: string, form: FormData) => request<T>('POST', path, form),
 }

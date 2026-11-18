@@ -23,6 +23,10 @@ spring:
   mvc:
     problemdetails:
       enabled: false
+  servlet:
+    multipart:
+      max-file-size: 1MB          # extrato (OFX/CSV) de até 1 MB
+      max-request-size: 1100KB
 
 server:
   port: ${PORT:8080}
@@ -63,3 +67,7 @@ bolso:
   invite:
     ttl-hours: 72
   zone: ${APP_TIMEZONE:America/Sao_Paulo}   # o "hoje" do saldo e do mês atual (o servidor roda em UTC)
+  telegram:                      # bot opcional: lançar gastos e receber lembretes (desligado sem token)
+    enabled: ${TELEGRAM_ENABLED:false}
+    token: ${TELEGRAM_BOT_TOKEN:}
+    bot-username: ${TELEGRAM_BOT_USERNAME:}

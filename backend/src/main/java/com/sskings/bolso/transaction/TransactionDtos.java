@@ -37,7 +37,7 @@ public final class TransactionDtos {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record TransactionView(UUID id, TransactionType type, BigDecimal amount, LocalDate date, String description,
                                   Ref account, Ref toAccount, CategoryRef category, Ref card, java.time.YearMonth statement,
-                                  Ref recurrence, Ref createdBy, Instant createdAt) {}
+                                  Ref recurrence, TransactionSource source, Ref createdBy, Instant createdAt) {}
 
     public record Page(List<TransactionView> items, long total, int page, int size) {}
 }

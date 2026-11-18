@@ -21,10 +21,19 @@ import java.io.IOException;
  */
 public class RequestSizeLimitFilter extends OncePerRequestFilter {
 
-    private final long maxBytes;
+    private final long defaultMaxBytes;
+    private final long largeMaxBytes;
+    private final java.util.function.Predicate<String> largePath;
 
     public RequestSizeLimitFilter(long maxBytes) {
-        this.maxBytes = maxBytes;
+        this(maxBytes, maxBytes, path -> false);
+    }
+
+    /** Limite maior só nas rotas que precisam (importação de extrato); o resto continua no limite padrão. */
+    public RequestSizeLimitFilter(long defaultMaxBytes, long largeMaxBytes, java.util.function.Predicate<String> largePath) {
+        this.defaultMaxBytes = defaultMaxBytes;
+        this.largeMaxBytes = largeMaxBytes;
+        this.largePath = largePath;
     }
 
     /** Lançada ao passar do limite durante a leitura; o GlobalExceptionHandler a converte em 413. */
@@ -37,6 +46,7 @@ public class RequestSizeLimitFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
+        long maxBytes = largePath.test(RequestPaths.of(request)) ? largeMaxBytes : defaultMaxBytes;
         if (request.getContentLengthLong() > maxBytes) {
             response.setStatus(413);
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);

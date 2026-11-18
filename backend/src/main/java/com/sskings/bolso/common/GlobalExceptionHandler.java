@@ -68,6 +68,17 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.CONFLICT, "Conflict with existing data");
     }
 
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    ResponseEntity<ErrorResponse> uploadTooLarge(Exception ex) {
+        return error(HttpStatus.PAYLOAD_TOO_LARGE, "File too large (maximum 1 MB)");
+    }
+
+    @ExceptionHandler({org.springframework.web.multipart.support.MissingServletRequestPartException.class,
+            org.springframework.web.multipart.MultipartException.class})
+    ResponseEntity<ErrorResponse> badUpload(Exception ex) {
+        return error(HttpStatus.BAD_REQUEST, "Invalid upload");
+    }
+
     @ExceptionHandler(NoResourceFoundException.class)
     ResponseEntity<ErrorResponse> noRoute(NoResourceFoundException ex) {
         return error(HttpStatus.NOT_FOUND, "Resource not found");

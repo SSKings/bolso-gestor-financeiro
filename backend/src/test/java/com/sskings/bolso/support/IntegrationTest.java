@@ -38,6 +38,16 @@ public abstract class IntegrationTest {
     @Autowired protected ObjectMapper json;
     @Autowired protected MutableClock clock;
 
+    /** Bot do Telegram ligado contra a API de mentira: o transporte (polling, envio) roda de verdade nos testes. */
+    @org.springframework.test.context.DynamicPropertySource
+    static void telegram(org.springframework.test.context.DynamicPropertyRegistry r) {
+        r.add("bolso.telegram.enabled", () -> "true");
+        r.add("bolso.telegram.token", () -> FakeTelegram.TOKEN);
+        r.add("bolso.telegram.bot-username", () -> "BolsoTesteBot");
+        r.add("bolso.telegram.api-url", () -> FakeTelegram.get().url());
+        r.add("bolso.telegram.poll-timeout-seconds", () -> "1");
+    }
+
     @AfterEach
     void resetClock() {
         clock.reset();

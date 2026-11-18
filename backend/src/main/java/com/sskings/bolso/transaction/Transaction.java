@@ -63,6 +63,13 @@ public class Transaction {
     @Column(name = "statement_month")
     private LocalDate statementMonth;
 
+    /** Só quando confirma uma conta fixa: qual e de que mês (dia 1). */
+    @Column(name = "recurrence_id")
+    private UUID recurrenceId;
+
+    @Column(name = "recurrence_month")
+    private LocalDate recurrenceMonth;
+
     @Column(name = "created_by", updatable = false)
     private UUID createdBy;
 

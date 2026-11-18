@@ -45,13 +45,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TransactionService {
 
-    static final LocalDate MIN_DATE = LocalDate.of(2000, 1, 1);
+    public static final LocalDate MIN_DATE = LocalDate.of(2000, 1, 1);
 
     private final TransactionRepository transactions;
     private final AccountRepository accounts;
     private final CategoryRepository categories;
     private final UserRepository users;
     private final com.sskings.bolso.card.CreditCardRepository cards;
+    private final com.sskings.bolso.recurrence.RecurrenceRepository recurrences;
     private final WorkspaceAccess access;
     private final Today today;
     private final Clock clock;
@@ -72,6 +73,9 @@ public class TransactionService {
         Transaction t = find(ws, id);
         if (t.getType() == TransactionType.CARD_PAYMENT) {
             throw ApiException.badRequest("Card payments are changed through the card statement");
+        }
+        if (t.getRecurrenceId() != null && req.type() != t.getType()) {
+            throw ApiException.badRequest("Bill transactions keep their type");
         }
         apply(ws, t, req, false);
         t.setUpdatedAt(clock.instant());
@@ -184,6 +188,10 @@ public class TransactionService {
         Map<UUID, com.sskings.bolso.card.CreditCard> crd = list.stream().anyMatch(t -> t.getCardId() != null)
                 ? cards.findByWorkspaceIdOrderByName(ws).stream().collect(Collectors.toMap(com.sskings.bolso.card.CreditCard::getId, Function.identity()))
                 : Map.of();
+        Map<UUID, String> rec = list.stream().anyMatch(t -> t.getRecurrenceId() != null)
+                ? recurrences.findByWorkspaceIdOrderByDayOfMonthAscDescriptionAsc(ws).stream()
+                        .collect(Collectors.toMap(com.sskings.bolso.recurrence.Recurrence::getId, com.sskings.bolso.recurrence.Recurrence::getDescription))
+                : Map.of();
         Map<UUID, User> usr = users.findAllById(list.stream().map(Transaction::getCreatedBy).filter(Objects::nonNull).distinct().toList())
                 .stream().collect(Collectors.toMap(User::getId, Function.identity()));
         return list.stream().map(t -> {
@@ -197,6 +205,8 @@ public class TransactionService {
                     c == null ? null : new CategoryRef(c.getId(), c.getName(), c.getColor()),
                     card == null ? null : new Ref(card.getId(), card.getName()),
                     t.getStatementMonth() == null ? null : YearMonth.from(t.getStatementMonth()),
+                    t.getRecurrenceId() == null || !rec.containsKey(t.getRecurrenceId()) ? null
+                            : new Ref(t.getRecurrenceId(), rec.get(t.getRecurrenceId())),
                     u == null ? null : new Ref(u.getId(), u.getName()), t.getCreatedAt());
         }).toList();
     }

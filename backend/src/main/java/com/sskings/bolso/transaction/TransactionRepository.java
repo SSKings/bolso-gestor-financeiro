@@ -20,6 +20,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID>,
 
     boolean existsByWorkspaceIdAndCardId(UUID workspaceId, UUID cardId);
 
+    java.util.List<Transaction> findByWorkspaceIdAndRecurrenceMonthAndRecurrenceIdIsNotNull(UUID workspaceId, java.time.LocalDate month);
+
+    boolean existsByRecurrenceIdAndRecurrenceMonth(UUID recurrenceId, java.time.LocalDate month);
+
     java.util.List<Transaction> findByWorkspaceIdAndCardIdAndStatementMonthOrderByOccurredOn(UUID workspaceId, UUID cardId, java.time.LocalDate month);
 
     @Query("select coalesce(sum(t.amount), 0) from Transaction t where t.workspaceId = :ws and t.cardId = :card")

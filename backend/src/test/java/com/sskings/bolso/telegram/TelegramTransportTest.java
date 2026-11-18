@@ -131,16 +131,21 @@ class TelegramTransportTest {
     }
 
     @Test
-    @DisplayName("Poller: liga e desliga com a aplicação")
-    void pollerLifecycle() {
+    @DisplayName("Poller: com o Telegram fora, espera e tenta de novo sem derrubar nada; desligar interrompe a espera")
+    void pollerLifecycle() throws Exception {
         TelegramClient client = mock(TelegramClient.class);
         when(client.skipBacklog()).thenThrow(new TelegramException("down"));
         TelegramPoller poller = new TelegramPoller(client, mock(TelegramBot.class));
         poller.start();
-        poller.start();
+        poller.start();                                                  // segunda chamada não cria outra thread
         assertThat(poller.isRunning()).isTrue();
+        verify(client, timeout(2000).times(1)).skipBacklog();            // falhou e entrou na espera (2 s)
+        Thread t = Thread.getAllStackTraces().keySet().stream().filter(x -> x.getName().equals("telegram-bot")).findFirst().orElseThrow();
         poller.stop();
+        t.join(2000);
+        assertThat(t.isAlive()).as("a espera é interrompida no desligamento").isFalse();
         assertThat(poller.isRunning()).isFalse();
+        verify(client, times(1)).skipBacklog();
     }
 
     @Test

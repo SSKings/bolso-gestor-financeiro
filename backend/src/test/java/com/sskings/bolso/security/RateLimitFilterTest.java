@@ -66,15 +66,49 @@ class RateLimitFilterTest {
         assertThat(RateLimitFilter.sourceKey("2001:db8:0:0:1::1")).isEqualTo("2001:0db8:0000:0000::/64");
         assertThat(RateLimitFilter.sourceKey("1.2.3.4")).isEqualTo("1.2.3.4");
         assertThat(RateLimitFilter.sourceKey(null)).isEqualTo("null");
+        assertThat(RateLimitFilter.sourceKey("::ffff:1.2.3.4")).as("IPv4 escrito como IPv6 conta como o próprio IPv4").isEqualTo("1.2.3.4");
+        assertThat(RateLimitFilter.sourceKey("::ffff:1.2.3.4")).isEqualTo(RateLimitFilter.sourceKey("1.2.3.4"));
     }
 
     @Test
-    @DisplayName("Muitas origens: janelas antigas são descartadas (memória limitada)")
+    @DisplayName("Memória limitada: acima de 10 mil origens, as janelas de minutos passados são descartadas")
     void sweep() throws Exception {
+        RateLimitFilter f = new RateLimitFilter(5, clock);
+        for (int i = 0; i < 10_001; i++) call(f, "POST", "/api/auth/login", "10." + (i >> 16 & 255) + "." + (i >> 8 & 255) + "." + (i & 255));
+        assertThat(f.tracked()).isEqualTo(10_001);
+        clock.advance(Duration.ofSeconds(61));
+        call(f, "POST", "/api/auth/login", "9.9.9.9");
+        assertThat(f.tracked()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("429: corpo JSON padrão, Retry-After com os segundos que faltam no minuto; janela vale o minuto inteiro")
+    void tooManyResponse() throws Exception {
+        clock.set(java.time.Instant.parse("2026-11-10T15:00:15Z"));
         RateLimitFilter f = new RateLimitFilter(1, clock);
-        for (int i = 0; i < 10_001; i++) call(f, "POST", "/api/auth/login", "10.0." + (i / 256) + "." + (i % 256));
-        clock.advance(Duration.ofMinutes(2));
-        assertThat(call(f, "POST", "/api/auth/login", "10.0.0.0")).isEqualTo(200);
-        assertThat(call(f, "POST", "/api/auth/login", "9.9.9.9")).isEqualTo(200);
+        MockHttpServletRequest req = new MockHttpServletRequest("POST", "/api/auth/login");
+        req.setRemoteAddr("7.7.7.7");
+        MockFilterChain first = new MockFilterChain();
+        f.doFilter(req, new MockHttpServletResponse(), first);
+        assertThat(first.getRequest()).as("pedido liberado segue adiante").isNotNull();
+        clock.advance(Duration.ofSeconds(30));                           // mesmo minuto, outro segundo
+        MockHttpServletResponse res = new MockHttpServletResponse();
+        MockFilterChain blocked = new MockFilterChain();
+        f.doFilter(req, res, blocked);
+        assertThat(res.getStatus()).isEqualTo(429);
+        assertThat(blocked.getRequest()).as("bloqueado não segue").isNull();
+        assertThat(res.getHeader("Retry-After")).isEqualTo("15");
+        assertThat(res.getContentType()).startsWith("application/json");
+        assertThat(res.getContentAsString()).isEqualTo("{\"status\":429,\"message\":\"Too many requests\"}");
+    }
+
+    @Test
+    @DisplayName("Com exatamente 10 mil origens ainda não limpa; acima disso, sim")
+    void sweepBoundary() throws Exception {
+        RateLimitFilter f = new RateLimitFilter(5, clock);
+        for (int i = 0; i < 9_999; i++) call(f, "POST", "/api/auth/login", "10." + (i >> 16 & 255) + "." + (i >> 8 & 255) + "." + (i & 255));
+        clock.advance(Duration.ofSeconds(61));
+        call(f, "POST", "/api/auth/login", "9.9.9.9");
+        assertThat(f.tracked()).isEqualTo(10_000);
     }
 }

@@ -21,7 +21,7 @@ export default defineConfig({
       reporter: ['text', 'html', 'json-summary'],
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/main.tsx', 'src/test/**', 'src/**/*.test.{ts,tsx}', 'src/vite-env.d.ts'],
-      thresholds: { lines: 90, branches: 85, functions: 85, statements: 90 },
+      thresholds: { lines: 96, branches: 89, functions: 94, statements: 95 },   // perto do atual (97,8 / 91,0 / 96,3 / 96,2)
     },
   },
 })

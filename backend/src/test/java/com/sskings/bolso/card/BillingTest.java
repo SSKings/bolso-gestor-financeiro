@@ -57,4 +57,14 @@ class BillingTest {
     void splitTooSmall() {
         assertThatThrownBy(() -> Billing.split(new BigDecimal("0.02"), 3)).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Fronteira: 1 centavo por parcela é o mínimo (R$ 0,03 em 3× pode; em 4×, não; 0 parcelas, não)")
+    void splitBoundaries() {
+        org.assertj.core.api.Assertions.assertThat(Billing.split(new java.math.BigDecimal("0.03"), 3))
+                .containsExactly(new java.math.BigDecimal("0.01"), new java.math.BigDecimal("0.01"), new java.math.BigDecimal("0.01"));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> Billing.split(new java.math.BigDecimal("0.03"), 4)).isInstanceOf(IllegalArgumentException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> Billing.split(new java.math.BigDecimal("10.00"), 0)).isInstanceOf(IllegalArgumentException.class);
+        org.assertj.core.api.Assertions.assertThat(Billing.split(new java.math.BigDecimal("10.00"), 1)).containsExactly(new java.math.BigDecimal("10.00"));
+    }
 }

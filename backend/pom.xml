@@ -147,7 +147,7 @@
 						<goals><goal>report</goal></goals>
 					</execution>
 					<execution>
-						<!-- mvn verify falha se a cobertura cair abaixo do mínimo -->
+						<!-- mvn verify falha se a cobertura cair abaixo do mínimo (perto do atual: 98,8% / 93,5%) -->
 						<id>check</id>
 						<goals><goal>check</goal></goals>
 						<configuration>
@@ -158,12 +158,12 @@
 										<limit>
 											<counter>LINE</counter>
 											<value>COVEREDRATIO</value>
-											<minimum>0.90</minimum>
+											<minimum>0.97</minimum>
 										</limit>
 										<limit>
 											<counter>BRANCH</counter>
 											<value>COVEREDRATIO</value>
-											<minimum>0.85</minimum>
+											<minimum>0.92</minimum>
 										</limit>
 									</limits>
 								</rule>
@@ -171,6 +171,42 @@
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<!-- Teste de mutação (PIT) das regras puras: ./mvnw test-compile pitest:mutationCoverage.
+				     Injeta defeitos no código (troca < por <=, apaga condições, inverte retornos) e exige que os testes
+				     peguem a maioria. Fica fora do verify (é mais lento); o CI roda em todo PR. -->
+				<groupId>org.pitest</groupId>
+				<artifactId>pitest-maven</artifactId>
+				<version>1.30.2</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.pitest</groupId>
+						<artifactId>pitest-junit5-plugin</artifactId>
+						<version>1.2.3</version>
+					</dependency>
+				</dependencies>
+				<configuration>
+					<targetClasses>
+						<param>com.sskings.bolso.card.Billing*</param>
+						<param>com.sskings.bolso.importing.StatementParser*</param>
+						<param>com.sskings.bolso.security.PasswordStrength*</param>
+						<param>com.sskings.bolso.security.RateLimitFilter*</param>
+						<param>com.sskings.bolso.config.ProductionConfigValidator*</param>
+					</targetClasses>
+					<targetTests>
+						<param>com.sskings.bolso.card.BillingTest</param>
+						<param>com.sskings.bolso.importing.StatementParserTest</param>
+						<param>com.sskings.bolso.security.PasswordStrengthTest</param>
+						<param>com.sskings.bolso.security.RateLimitFilterTest</param>
+						<param>com.sskings.bolso.config.ProductionConfigValidatorTest</param>
+					</targetTests>
+					<mutators><mutator>STRONGER</mutator></mutators>
+					<outputFormats><param>HTML</param><param>XML</param></outputFormats>
+					<timestampedReports>false</timestampedReports>
+					<threads>4</threads>
+					<mutationThreshold>92</mutationThreshold>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

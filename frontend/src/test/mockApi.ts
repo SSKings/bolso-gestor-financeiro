@@ -1,4 +1,5 @@
 import { vi } from 'vitest'
+import type { Account, Category, Me } from '../api/types'
 
 // Simulador da API para os testes de tela: "MÉTODO /caminho" → resposta. Registra cada chamada (com o corpo já
 // decodificado) para o teste conferir exatamente o que o front mandou.
@@ -31,19 +32,19 @@ export function mockApi(routes: Record<string, Handler>) {
 }
 
 export const WS = '11111111-1111-1111-1111-111111111111'
-export const ME = {
+export const ME: Me = {
   id: 'u1', name: 'Ana Souza', email: 'ana@teste.com',
   workspaces: [
     { id: WS, name: 'Pessoal', role: 'OWNER' },
     { id: '22222222-2222-2222-2222-222222222222', name: 'Casa', role: 'MEMBER' },
   ],
 }
-export const ACCOUNTS = [
-  { id: 'a1', name: 'Carteira', type: 'CASH', initialBalance: '0.00', balance: '150.00', archived: false },
-  { id: 'a2', name: 'Nubank', type: 'CHECKING', initialBalance: '1000.00', balance: '2450.30', archived: false },
-  { id: 'a3', name: 'Antiga', type: 'SAVINGS', initialBalance: '0.00', balance: '0.00', archived: true },
+export const ACCOUNTS: Account[] = [
+  { id: 'a1', name: 'Carteira', type: 'CASH', initialBalance: 0, balance: 150, archived: false },
+  { id: 'a2', name: 'Nubank', type: 'CHECKING', initialBalance: 1000, balance: 2450.3, archived: false },
+  { id: 'a3', name: 'Antiga', type: 'SAVINGS', initialBalance: 0, balance: 0, archived: true },
 ]
-export const CATEGORIES = [
+export const CATEGORIES: Category[] = [
   { id: 'c1', name: 'Mercado', kind: 'EXPENSE', color: '#22c55e', archived: false },
   { id: 'c2', name: 'Alimentação', kind: 'EXPENSE', color: '#f97316', archived: false },
   { id: 'c3', name: 'Velha', kind: 'EXPENSE', color: '#6b7280', archived: true },

@@ -11,7 +11,7 @@ import { Link } from 'react-router-dom'
 import { formatBRL } from '../lib/money'
 import { useWorkspace } from '../workspace/WorkspaceContext'
 
-function Stat({ label, value, tone }: { label: string; value: string; tone: string }) {
+function Stat({ label, value, tone }: { label: string; value: number; tone: string }) {
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm">
       <p className="text-xs text-slate-500">{label}</p>

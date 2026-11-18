@@ -2,6 +2,7 @@ package com.sskings.bolso.transaction;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import com.sskings.bolso.common.PlainText;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -36,8 +37,10 @@ public final class TransactionDtos {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record TransactionView(UUID id, TransactionType type, BigDecimal amount, LocalDate date, String description,
-                                  Ref account, Ref toAccount, CategoryRef category, Ref card, java.time.YearMonth statement,
-                                  Ref recurrence, TransactionSource source, Ref createdBy, Instant createdAt) {}
+                                  Ref account, @Schema(nullable = true) Ref toAccount, @Schema(nullable = true) CategoryRef category,
+                                  @Schema(nullable = true) Ref card, @Schema(nullable = true) java.time.YearMonth statement,
+                                  @Schema(nullable = true) Ref recurrence, TransactionSource source,
+                                  @Schema(nullable = true) Ref createdBy, Instant createdAt) {}
 
     public record Page(List<TransactionView> items, long total, int page, int size) {}
 }

@@ -5,10 +5,11 @@ import { ACCOUNTS, CATEGORIES, ME, WS, mockApi } from './test/mockApi'
 import { renderApp } from './test/render'
 import { currentMonth, todayISO } from './lib/dates'
 import { statementFor } from './lib/billing'
+import type { Card, Statement } from './api/types'
 
-const CARDS = [
-  { id: 'k1', name: 'Nubank', last4: '1234', closingDay: 10, dueDay: 17, creditLimit: '5000.00', available: '3800.00', archived: false },
-  { id: 'k2', name: 'Velho', last4: null, closingDay: 5, dueDay: 12, creditLimit: '100.00', available: '100.00', archived: true },
+const CARDS: Card[] = [
+  { id: 'k1', name: 'Nubank', last4: '1234', closingDay: 10, dueDay: 17, creditLimit: 5000, available: 3800, archived: false },
+  { id: 'k2', name: 'Velho', last4: null, closingDay: 5, dueDay: 12, creditLimit: 100, available: 100, archived: true },
 ]
 const base = {
   'GET /api/me': ME,
@@ -16,13 +17,13 @@ const base = {
   [`GET /api/workspaces/${WS}/categories`]: CATEGORIES,
   [`GET /api/workspaces/${WS}/cards`]: CARDS,
 }
-const statement = (month: string) => ({
-  month, closingDate: `${month}-10`, dueDate: `${month}-17`, status: 'CLOSED', total: '233.34', paid: '100.00', remaining: '133.34',
+const statement = (month: string): Statement => ({
+  month, closingDate: `${month}-10`, dueDate: `${month}-17`, status: 'CLOSED', total: 233.34, paid: 100, remaining: 133.34,
   items: [
-    { purchaseId: 'p1', description: 'Geladeira', number: 1, of: 3, amount: '33.34', purchaseDate: '2026-11-05', category: { id: 'c1', name: 'Mercado', color: '#22c55e' } },
-    { purchaseId: 'p2', description: 'Mercado', number: 1, of: 1, amount: '200.00', purchaseDate: '2026-11-06', category: { id: 'c1', name: 'Mercado', color: '#22c55e' } },
+    { purchaseId: 'p1', description: 'Geladeira', number: 1, of: 3, amount: 33.34, purchaseDate: '2026-11-05', category: { id: 'c1', name: 'Mercado', color: '#22c55e' } },
+    { purchaseId: 'p2', description: 'Mercado', number: 1, of: 1, amount: 200, purchaseDate: '2026-11-06', category: { id: 'c1', name: 'Mercado', color: '#22c55e' } },
   ],
-  payments: [{ transactionId: 't1', date: '2026-11-15', amount: '100.00', account: { id: 'a2', name: 'Nubank' } }],
+  payments: [{ transactionId: 't1', date: '2026-11-15', amount: 100, account: { id: 'a2', name: 'Nubank' } }],
 })
 
 afterEach(() => vi.restoreAllMocks())

@@ -1,92 +1,68 @@
-export type Role = 'OWNER' | 'MEMBER'
-export type AccountType = 'CHECKING' | 'SAVINGS' | 'CASH' | 'INVESTMENT'
-export type CategoryKind = 'INCOME' | 'EXPENSE'
-export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'CARD_PAYMENT'
+import type { components } from './schema'
 
-export interface User { id: string; name: string; email: string }
-export interface WorkspaceSummary { id: string; name: string; role: Role }
-export interface Me extends User { workspaces: WorkspaceSummary[] }
-export interface AuthResponse { token: string; user: User }
+// Tipos da API derivados do contrato (docs/openapi.json → schema.d.ts, gerado por `npm run contract`).
+// Não escreva tipos de resposta à mão: se o backend mudar um campo, o tsc aponta aqui e em quem usa.
+//
+// Exceção deliberada: nos corpos de requisição, valores em dinheiro vão como texto ("35.90"), nunca como número de
+// ponto flutuante do JavaScript; o backend (BigDecimal) aceita os dois. `Money` troca esses campos por string.
 
-export interface Account { id: string; name: string; type: AccountType; initialBalance: string; balance: string; archived: boolean }
-export interface Category { id: string; name: string; kind: CategoryKind; color: string; archived: boolean }
+type S = components['schemas']
+type Money<T, K extends keyof T> = Omit<T, K> & { [P in K]: undefined extends T[P] ? string | undefined : string }
 
-export interface Ref { id: string; name: string }
-export interface Transaction {
-  id: string; type: TransactionType; amount: string; date: string; description: string
-  account: Ref; toAccount?: Ref; category?: Ref & { color: string }; card?: Ref; statement?: string; createdBy?: Ref; createdAt: string
-  source?: TransactionSource
-}
-export type TransactionSource = 'MANUAL' | 'IMPORT' | 'TELEGRAM'
+export type Role = S['WorkspaceSummary']['role']
+export type AccountType = S['AccountView']['type']
+export type CategoryKind = S['CategoryView']['kind']
+export type TransactionType = S['TransactionView']['type']
+export type TransactionSource = S['TransactionView']['source']
+export type FlowType = Extract<TransactionType, 'INCOME' | 'EXPENSE'>
 
-export interface Rule { id: string; pattern: string; category: Ref & { color: string } }
+export type User = S['UserView']
+export type WorkspaceSummary = S['WorkspaceSummary']
+export type Me = S['MeResponse']
+export type AuthResponse = S['AuthResponse']
+export type Ref = S['Ref']
+export type CategoryRef = S['CategoryRef']
 
-export interface ImportPreviewEntry {
-  externalId: string; date: string; amount: string; type: 'INCOME' | 'EXPENSE'; description: string
-  suggestedCategory: (Ref & { color: string }) | null; duplicate: boolean; similar: boolean
-}
-export interface ImportPreview { accountId: string; entries: ImportPreviewEntry[]; total: number; duplicates: number }
-export interface ImportEntry { externalId: string; date: string; amount: string; type: 'INCOME' | 'EXPENSE'; description: string; categoryId: string }
-export interface ImportResult { imported: number; skipped: number }
+export type Account = S['AccountView']
+export type AccountInput = Money<S['AccountRequest'], 'initialBalance'>
+export type Category = S['CategoryView']
+export type CategoryCreate = S['CreateCategory']
+export type CategoryUpdate = S['UpdateCategory']
 
-export interface TelegramStatus {
-  available: boolean; botUsername: string | null
-  link: { workspace: Ref; account: Ref; linkedAt: string } | null
-}
-export interface TelegramCode { code: string; link: string; expiresAt: string }
-export interface TransactionPage { items: Transaction[]; total: number; page: number; size: number }
-export interface TransactionInput {
-  type: TransactionType; amount: string; date: string; description: string
-  accountId: string; categoryId?: string; toAccountId?: string
-}
+export type Transaction = S['TransactionView']
+export type TransactionPage = S['Page']
+export type TransactionInput = Money<S['TransactionRequest'], 'amount'>
 
-export interface Dashboard {
-  month: string; income: string; expense: string; net: string
-  expensesByCategory: { categoryId: string; name: string; color: string; amount: string }[]
-  accounts: Account[]; totalBalance: string
-  cards: StatementSummary[]
-}
+export type Rule = S['RuleView']
+export type RuleInput = S['RuleRequest']
+export type ImportPreviewEntry = S['PreviewEntry']
+export type ImportPreview = S['Preview']
+export type ImportEntry = Money<S['ImportEntry'], 'amount'>
+export type ImportResult = S['CommitResult']
 
-export interface Member { userId: string; name: string; email: string; role: Role; joinedAt: string }
-export interface InviteCreated { id: string; code: string; expiresAt: string }
-export interface Invite { id: string; createdAt: string; expiresAt: string }
+export type TelegramStatus = S['Status']
+export type TelegramCode = S['CodeResponse']
 
-export type StatementStatus = 'OPEN' | 'CLOSED' | 'PAID'
-export interface Card {
-  id: string; name: string; last4: string | null; closingDay: number; dueDay: number
-  creditLimit: string; available: string; archived: boolean
-}
-export interface CardInput { name: string; last4?: string; closingDay: number; dueDay: number; creditLimit: string; archived?: boolean }
-export interface PurchaseInput { description: string; amount: string; installments: number; date: string; categoryId: string }
-export interface StatementItem {
-  purchaseId: string; description: string; number: number; of: number; amount: string; purchaseDate: string
-  category: Ref & { color: string }
-}
-export interface Statement {
-  month: string; closingDate: string; dueDate: string; status: StatementStatus
-  total: string; paid: string; remaining: string
-  items: StatementItem[]
-  payments: { transactionId: string; date: string; amount: string; account: Ref }[]
-}
-export interface StatementSummary { cardId: string; name: string; statementTotal: string; dueDate: string; status: StatementStatus }
+export type Dashboard = S['Dashboard']
+export type Member = S['MemberView']
+export type InviteCreated = S['InviteCreated']
+export type Invite = S['InviteView']
+export type AcceptedInvite = S['AcceptedInvite']
 
-export type OccurrenceStatus = 'PAID' | 'OVERDUE' | 'DUE_SOON' | 'PENDING'
-export type FlowType = 'INCOME' | 'EXPENSE'
-export interface Recurrence {
-  id: string; type: FlowType; description: string; amount: string; dayOfMonth: number
-  category: Ref & { color: string }; account: Ref; startMonth: string; endMonth: string | null; active: boolean
-}
-export interface RecurrenceInput {
-  type: FlowType; description: string; amount: string; dayOfMonth: number; categoryId: string; accountId: string
-  startMonth: string; endMonth?: string; active?: boolean
-}
-export interface Occurrence {
-  recurrenceId: string; type: FlowType; description: string; month: string; dueDate: string; expectedAmount: string
-  status: OccurrenceStatus; transactionId: string | null; paidAmount: string | null; category: Ref & { color: string }; account: Ref
-}
-export type BudgetStatus = 'OK' | 'WARNING' | 'EXCEEDED'
-export interface Budget { category: Ref & { color: string }; amount: string; spent: string; remaining: string; percent: number; status: BudgetStatus }
-export interface Forecast {
-  month: string; today: string; currentBalance: string; pendingIncome: string; pendingExpense: string; projectedBalance: string
-  items: { kind: 'SCHEDULED' | 'BILL' | 'CARD_STATEMENT'; description: string; date: string; amount: string; direction: 'IN' | 'OUT' }[]
-}
+export type StatementStatus = S['StatementView']['status']
+export type Card = S['CardView']
+export type CardInput = Money<S['CardRequest'], 'creditLimit'>
+export type PurchaseInput = Money<S['PurchaseRequest'], 'amount'>
+export type StatementItem = S['StatementItem']
+export type Statement = S['StatementView']
+export type StatementSummary = S['StatementSummary']
+export type PaymentInput = Money<S['PaymentRequest'], 'amount'>
+
+export type OccurrenceStatus = S['Occurrence']['status']
+export type Recurrence = S['RecurrenceView']
+export type RecurrenceInput = Money<S['RecurrenceRequest'], 'amount'>
+export type ConfirmInput = Money<S['ConfirmRequest'], 'amount'>
+export type Occurrence = S['Occurrence']
+export type BudgetStatus = S['BudgetView']['status']
+export type Budget = S['BudgetView']
+export type Forecast = S['Forecast']

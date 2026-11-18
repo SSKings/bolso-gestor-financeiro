@@ -1,0 +1,9 @@
+{
+  "name": "bolso-openapi-tools",
+  "private": true,
+  "description": "Gerador dos tipos TypeScript a partir de docs/openapi.json (contrato com o backend). Isolado do app: usa TypeScript 5, que o gerador exige.",
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}

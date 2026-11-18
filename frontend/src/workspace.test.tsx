@@ -4,9 +4,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ACCOUNTS, CATEGORIES, ME, WS, mockApi } from './test/mockApi'
 import { renderApp } from './test/render'
 import { getToken } from './api/client'
+import type { Dashboard } from './api/types'
 
 const CASA = '22222222-2222-2222-2222-222222222222'
-const dash = (month = '2026-11') => ({ month, income: '0', expense: '0', net: '0', expensesByCategory: [], accounts: ACCOUNTS, totalBalance: '0' })
+const dash = (month = '2026-11'): Dashboard => ({ month, income: 0, expense: 0, net: 0, expensesByCategory: [], accounts: ACCOUNTS, totalBalance: 0, cards: [] })
 const routesFor = (ws: string) => ({
   [`GET /api/workspaces/${ws}/accounts`]: ACCOUNTS,
   [`GET /api/workspaces/${ws}/categories`]: CATEGORIES,

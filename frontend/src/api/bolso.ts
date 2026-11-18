@@ -1,9 +1,9 @@
 import { api } from './client'
 import type {
-  Account, AccountType, AuthResponse, Card, CardInput, Category, CategoryKind, Dashboard, Invite, InviteCreated, Me, Member,
-  PurchaseInput, Statement, Budget, Forecast, Occurrence, Recurrence, RecurrenceInput, Rule, ImportPreview, ImportEntry, ImportResult,
-  TelegramStatus, TelegramCode,
-  TransactionInput, TransactionPage, TransactionType, WorkspaceSummary,
+  AcceptedInvite, Account, AccountInput, AuthResponse, Budget, Card, CardInput, Category, CategoryCreate, CategoryUpdate, ConfirmInput,
+  Dashboard, Forecast, ImportEntry, ImportPreview, ImportResult, Invite, InviteCreated, Me, Member, Occurrence, PaymentInput,
+  PurchaseInput, Recurrence, RecurrenceInput, Rule, RuleInput, Statement, TelegramCode, TelegramStatus, Transaction, TransactionInput,
+  TransactionPage, TransactionType, WorkspaceSummary,
 } from './types'
 
 // Endpoints da API do Bolso. Todo recurso de espaço vai em /api/workspaces/{id}/...: o servidor confere a
@@ -28,18 +28,18 @@ export const workspaces = {
   invites: (id: string) => api.get<Invite[]>(ws(id, '/invites')),
   createInvite: (id: string) => api.post<InviteCreated>(ws(id, '/invites')),
   revokeInvite: (id: string, inviteId: string) => api.del(ws(id, `/invites/${encodeURIComponent(inviteId)}`)),
-  accept: (code: string) => api.post<{ workspaceId: string; name: string }>(`/api/invites/${encodeURIComponent(code)}/accept`),
+  accept: (code: string) => api.post<AcceptedInvite>(`/api/invites/${encodeURIComponent(code)}/accept`),
 }
 
 export const finance = {
   dashboard: (id: string, month: string) => api.get<Dashboard>(ws(id, `/dashboard?month=${month}`)),
   accounts: (id: string) => api.get<Account[]>(ws(id, '/accounts')),
-  createAccount: (id: string, body: { name: string; type: AccountType; initialBalance: string }) => api.post<Account>(ws(id, '/accounts'), body),
-  updateAccount: (id: string, accountId: string, body: { name: string; type: AccountType; initialBalance: string; archived: boolean }) =>
+  createAccount: (id: string, body: AccountInput) => api.post<Account>(ws(id, '/accounts'), body),
+  updateAccount: (id: string, accountId: string, body: AccountInput) =>
     api.put<Account>(ws(id, `/accounts/${encodeURIComponent(accountId)}`), body),
   categories: (id: string) => api.get<Category[]>(ws(id, '/categories')),
-  createCategory: (id: string, body: { name: string; kind: CategoryKind; color: string }) => api.post<Category>(ws(id, '/categories'), body),
-  updateCategory: (id: string, categoryId: string, body: { name: string; color: string; archived: boolean }) =>
+  createCategory: (id: string, body: CategoryCreate) => api.post<Category>(ws(id, '/categories'), body),
+  updateCategory: (id: string, categoryId: string, body: CategoryUpdate) =>
     api.put<Category>(ws(id, `/categories/${encodeURIComponent(categoryId)}`), body),
   transactions: (id: string, f: { month: string; q?: string; type?: TransactionType }) => {
     const params = new URLSearchParams({ month: f.month, size: '100' })
@@ -47,7 +47,7 @@ export const finance = {
     if (f.type) params.set('type', f.type)
     return api.get<TransactionPage>(ws(id, `/transactions?${params}`))
   },
-  createTransaction: (id: string, body: TransactionInput) => api.post(ws(id, '/transactions'), body),
+  createTransaction: (id: string, body: TransactionInput) => api.post<Transaction>(ws(id, '/transactions'), body),
   deleteTransaction: (id: string, txId: string) => api.del(ws(id, `/transactions/${encodeURIComponent(txId)}`)),
 }
 
@@ -60,7 +60,7 @@ export const cards = {
   buy: (id: string, cardId: string, body: PurchaseInput) => api.post(card(id, cardId, '/purchases'), body),
   deletePurchase: (id: string, cardId: string, purchaseId: string) => api.del(card(id, cardId, `/purchases/${encodeURIComponent(purchaseId)}`)),
   statement: (id: string, cardId: string, month: string) => api.get<Statement>(card(id, cardId, `/statements/${month}`)),
-  pay: (id: string, cardId: string, month: string, body: { accountId: string; amount: string; date: string }) =>
+  pay: (id: string, cardId: string, month: string, body: PaymentInput) =>
     api.post(card(id, cardId, `/statements/${month}/payments`), body),
 }
 
@@ -70,7 +70,7 @@ export const planning = {
   updateRecurrence: (id: string, recId: string, body: RecurrenceInput) => api.put<Recurrence>(ws(id, `/recurrences/${encodeURIComponent(recId)}`), body),
   deleteRecurrence: (id: string, recId: string) => api.del(ws(id, `/recurrences/${encodeURIComponent(recId)}`)),
   occurrences: (id: string, month: string) => api.get<Occurrence[]>(ws(id, `/recurrences/occurrences?month=${month}`)),
-  confirm: (id: string, recId: string, month: string, body: { amount: string; date: string; accountId: string }) =>
+  confirm: (id: string, recId: string, month: string, body: ConfirmInput) =>
     api.post(ws(id, `/recurrences/${encodeURIComponent(recId)}/occurrences/${month}/confirm`), body),
   budgets: (id: string, month: string) => api.get<Budget[]>(ws(id, `/budgets?month=${month}`)),
   setBudget: (id: string, categoryId: string, amount: string) => api.put<Budget>(ws(id, `/budgets/${encodeURIComponent(categoryId)}`), { amount }),
@@ -80,7 +80,7 @@ export const planning = {
 
 export const automation = {
   rules: (id: string) => api.get<Rule[]>(ws(id, '/rules')),
-  createRule: (id: string, body: { pattern: string; categoryId: string }) => api.post<Rule>(ws(id, '/rules'), body),
+  createRule: (id: string, body: RuleInput) => api.post<Rule>(ws(id, '/rules'), body),
   deleteRule: (id: string, ruleId: string) => api.del(ws(id, `/rules/${encodeURIComponent(ruleId)}`)),
   previewImport: (id: string, accountId: string, file: File) => {
     const form = new FormData()

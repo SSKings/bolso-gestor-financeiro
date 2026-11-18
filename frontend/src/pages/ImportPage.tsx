@@ -59,7 +59,7 @@ export function ImportPage() {
     setBusy(true)
     try {
       const r = await automation.commitImport(id, accountId, chosen.map((c) => ({
-        externalId: c.externalId, date: c.date, amount: c.amount, type: c.type, description: c.description, categoryId: c.categoryId,
+        externalId: c.externalId, date: c.date, amount: c.amount.toFixed(2), type: c.type, description: c.description, categoryId: c.categoryId,
       })))
       setOk(`${r.imported} ${r.imported === 1 ? 'lançamento importado' : 'lançamentos importados'}${r.skipped ? ` (${r.skipped} já existiam)` : ''}.`)
       setPreview(null)

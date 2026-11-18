@@ -62,8 +62,8 @@ public class ImportService {
     private final WorkspaceAccess access;
     private final Clock clock;
 
-    public record PreviewEntry(String externalId, LocalDate date, BigDecimal amount, TransactionType type, String description,
-                               CategoryRef suggestedCategory, boolean duplicate, boolean similar) {}
+    public record PreviewEntry(String externalId, LocalDate date, BigDecimal amount, @io.swagger.v3.oas.annotations.media.Schema(allowableValues = {"INCOME", "EXPENSE"}) TransactionType type, String description,
+                               @io.swagger.v3.oas.annotations.media.Schema(nullable = true) CategoryRef suggestedCategory, boolean duplicate, boolean similar) {}
 
     public record Preview(UUID accountId, List<PreviewEntry> entries, int total, int duplicates) {}
 
@@ -71,7 +71,7 @@ public class ImportService {
             @NotBlank @Size(max = 80) @Pattern(regexp = "^[A-Za-z0-9._:-]+$") String externalId,
             @NotNull LocalDate date,
             @NotNull @Digits(integer = 12, fraction = 2) @DecimalMin("0.01") @DecimalMax("999999999.99") BigDecimal amount,
-            @NotNull TransactionType type,
+            @NotNull @io.swagger.v3.oas.annotations.media.Schema(allowableValues = {"INCOME", "EXPENSE"}) TransactionType type,
             @NotBlank @Size(max = 140) @PlainText String description,
             @NotNull UUID categoryId) {}
 

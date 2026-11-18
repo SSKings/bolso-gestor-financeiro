@@ -51,7 +51,7 @@ public class TelegramLinkService {
 
     public record LinkView(Ref workspace, Ref account, Instant linkedAt) {}
 
-    public record Status(boolean available, String botUsername, LinkView link) {}
+    public record Status(boolean available, @io.swagger.v3.oas.annotations.media.Schema(nullable = true) String botUsername, @io.swagger.v3.oas.annotations.media.Schema(nullable = true) LinkView link) {}
 
     /** Resultado do /start no bot. */
     sealed interface LinkResult permits Linked, Invalid {}

@@ -23,7 +23,7 @@ public final class RecurrenceDtos {
     private RecurrenceDtos() {}
 
     public record RecurrenceRequest(
-            @NotNull TransactionType type,
+            @NotNull @io.swagger.v3.oas.annotations.media.Schema(allowableValues = {"INCOME", "EXPENSE"}) TransactionType type,
             @NotBlank @Size(max = 140) @PlainText String description,
             @NotNull @Digits(integer = 12, fraction = 2) @DecimalMin("0.01") @DecimalMax("999999999.99") BigDecimal amount,
             @NotNull @Min(1) @Max(28) Integer dayOfMonth,
@@ -33,13 +33,13 @@ public final class RecurrenceDtos {
             YearMonth endMonth,
             Boolean active) {}
 
-    public record RecurrenceView(UUID id, TransactionType type, String description, BigDecimal amount, int dayOfMonth,
-                                 CategoryRef category, Ref account, YearMonth startMonth, YearMonth endMonth, boolean active) {}
+    public record RecurrenceView(UUID id, @io.swagger.v3.oas.annotations.media.Schema(allowableValues = {"INCOME", "EXPENSE"}) TransactionType type, String description, BigDecimal amount, int dayOfMonth,
+                                 CategoryRef category, Ref account, YearMonth startMonth, @io.swagger.v3.oas.annotations.media.Schema(nullable = true) YearMonth endMonth, boolean active) {}
 
     public enum OccurrenceStatus { PAID, OVERDUE, DUE_SOON, PENDING }
 
-    public record Occurrence(UUID recurrenceId, TransactionType type, String description, YearMonth month, LocalDate dueDate,
-                             BigDecimal expectedAmount, OccurrenceStatus status, UUID transactionId, BigDecimal paidAmount,
+    public record Occurrence(UUID recurrenceId, @io.swagger.v3.oas.annotations.media.Schema(allowableValues = {"INCOME", "EXPENSE"}) TransactionType type, String description, YearMonth month, LocalDate dueDate,
+                             BigDecimal expectedAmount, OccurrenceStatus status, @io.swagger.v3.oas.annotations.media.Schema(nullable = true) UUID transactionId, @io.swagger.v3.oas.annotations.media.Schema(nullable = true) BigDecimal paidAmount,
                              CategoryRef category, Ref account) {}
 
     public record ConfirmRequest(

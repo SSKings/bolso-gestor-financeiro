@@ -1,6 +1,6 @@
 package com.sskings.bolso.account;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.sskings.bolso.support.IntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,11 +30,11 @@ class AccountIntegrationTest extends IntegrationTest {
         MockHttpServletResponse r = call(post(ws(s, "/accounts")), s.token(), account("Nubank", "CHECKING", "1500.50"));
         assertThat(r.getStatus()).isEqualTo(201);
         JsonNode acc = body(r);
-        assertThat(acc.get("name").asText()).isEqualTo("Nubank");
+        assertThat(acc.get("name").asString()).isEqualTo("Nubank");
         assertThat(acc.get("balance").decimalValue()).isEqualByComparingTo("1500.50");
 
         JsonNode list = body(call(get(ws(s, "/accounts")), s.token(), null));
-        assertThat(list.findValuesAsText("name")).containsExactly("Carteira", "Nubank");
+        assertThat(list.findValuesAsString("name")).containsExactly("Carteira", "Nubank");
         assertThat(call(post(ws(s, "/accounts")), s.token(), account("  NUBANK ", "SAVINGS", "0")).getStatus()).isEqualTo(409);
     }
 
@@ -65,31 +65,31 @@ class AccountIntegrationTest extends IntegrationTest {
     @DisplayName("Editar e arquivar; excluir só conta sem lançamentos")
     void updateArchiveDelete() throws Exception {
         Session s = register();
-        String id = body(call(post(ws(s, "/accounts")), s.token(), account("Itaú", "CHECKING", "0"))).get("id").asText();
+        String id = body(call(post(ws(s, "/accounts")), s.token(), account("Itaú", "CHECKING", "0"))).get("id").asString();
         Map<String, Object> upd = account("Itaú PJ", "SAVINGS", "10.00");
         upd.put("archived", true);
         MockHttpServletResponse r = call(put(ws(s, "/accounts/" + id)), s.token(), upd);
         assertThat(r.getStatus()).isEqualTo(200);
         assertThat(body(r).get("archived").asBoolean()).isTrue();
-        assertThat(body(r).get("type").asText()).isEqualTo("SAVINGS");
+        assertThat(body(r).get("type").asString()).isEqualTo("SAVINGS");
 
         assertThat(call(delete(ws(s, "/accounts/" + id)), s.token(), null).getStatus()).isEqualTo(204);
         assertThat(call(get(ws(s, "/accounts/" + id)), s.token(), null).getStatus()).isEqualTo(404);
 
-        String carteira = body(call(get(ws(s, "/accounts")), s.token(), null)).get(0).get("id").asText();
-        String cat = body(call(get(ws(s, "/categories")), s.token(), null)).get(0).get("id").asText();
+        String carteira = body(call(get(ws(s, "/accounts")), s.token(), null)).get(0).get("id").asString();
+        String cat = body(call(get(ws(s, "/categories")), s.token(), null)).get(0).get("id").asString();
         call(post(ws(s, "/transactions")), s.token(), Map.of("type", "EXPENSE", "amount", "10.00", "date", "2026-11-01",
                 "description", "Café", "accountId", carteira, "categoryId", cat));
         MockHttpServletResponse used = call(delete(ws(s, "/accounts/" + carteira)), s.token(), null);
         assertThat(used.getStatus()).isEqualTo(409);
-        assertThat(body(used).get("message").asText()).isEqualTo("Account has transactions; archive it instead");
+        assertThat(body(used).get("message").asString()).isEqualTo("Account has transactions; archive it instead");
     }
 
     @Test
     @DisplayName("Renomear: para o nome de outra conta → 409; mudar só maiúsculas da própria → ok")
     void renameRules() throws Exception {
         Session s = register();
-        String id = body(call(post(ws(s, "/accounts")), s.token(), account("Itaú", "CHECKING", "0"))).get("id").asText();
+        String id = body(call(post(ws(s, "/accounts")), s.token(), account("Itaú", "CHECKING", "0"))).get("id").asString();
         assertThat(call(put(ws(s, "/accounts/" + id)), s.token(), account("carteira", "CHECKING", "0")).getStatus()).isEqualTo(409);
         assertThat(call(put(ws(s, "/accounts/" + id)), s.token(), account("ITAÚ", "CHECKING", "0")).getStatus()).isEqualTo(200);
     }

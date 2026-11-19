@@ -1,17 +1,17 @@
 package com.sskings.bolso.support;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.AbstractMockHttpServletRequestBuilder;
 
 import java.util.Map;
 import java.util.UUID;
@@ -63,7 +63,7 @@ public abstract class IntegrationTest {
     }
 
     /** Requisição completa: origem, token (opcional) e corpo JSON (opcional, objeto ou String crua). */
-    protected MockHttpServletResponse call(MockHttpServletRequestBuilder req, String token, Object body, String ip) throws Exception {
+    protected MockHttpServletResponse call(AbstractMockHttpServletRequestBuilder<?> req, String token, Object body, String ip) throws Exception {
         req.with(r -> { r.setRemoteAddr(ip); return r; });
         if (token != null) req.header("Authorization", "Bearer " + token);
         if (body != null) {
@@ -73,7 +73,7 @@ public abstract class IntegrationTest {
         return mvc.perform(req).andReturn().getResponse();
     }
 
-    protected MockHttpServletResponse call(MockHttpServletRequestBuilder req, String token, Object body) throws Exception {
+    protected MockHttpServletResponse call(AbstractMockHttpServletRequestBuilder<?> req, String token, Object body) throws Exception {
         return call(req, token, body, ip());
     }
 
@@ -93,9 +93,9 @@ public abstract class IntegrationTest {
                 Map.of("name", name, "email", email, "password", PASSWORD));
         assertThat(r.getStatus()).as(r.getContentAsString()).isEqualTo(201);
         JsonNode b = body(r);
-        String token = b.get("token").asText();
+        String token = b.get("token").asString();
         JsonNode me = body(call(get("/api/me"), token, null));
-        return new Session(token, me.get("id").asText(), email, me.get("workspaces").get(0).get("id").asText());
+        return new Session(token, me.get("id").asString(), email, me.get("workspaces").get(0).get("id").asString());
     }
 
     protected String ws(Session s, String path) {

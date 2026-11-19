@@ -1,6 +1,6 @@
 package com.sskings.bolso.card;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.sskings.bolso.support.IntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,13 +44,13 @@ class CardIntegrationTest extends IntegrationTest {
     /** Cartão "Nubank" que fecha dia 10 e vence dia 17, limite 5000; conta corrente com 3000. */
     private Fx fixture() throws Exception {
         Session s = register();
-        String cardId = body(call(post(ws(s, "/cards")), s.token(), card("Nubank", "1234", 10, 17, "5000.00"))).get("id").asText();
+        String cardId = body(call(post(ws(s, "/cards")), s.token(), card("Nubank", "1234", 10, 17, "5000.00"))).get("id").asString();
         String account = body(call(post(ws(s, "/accounts")), s.token(),
-                Map.of("name", "Corrente", "type", "CHECKING", "initialBalance", "3000.00"))).get("id").asText();
+                Map.of("name", "Corrente", "type", "CHECKING", "initialBalance", "3000.00"))).get("id").asString();
         String food = null, salary = null;
         for (JsonNode c : body(call(get(ws(s, "/categories")), s.token(), null))) {
-            if (c.get("name").asText().equals("Alimentação")) food = c.get("id").asText();
-            if (c.get("name").asText().equals("Salário")) salary = c.get("id").asText();
+            if (c.get("name").asString().equals("Alimentação")) food = c.get("id").asString();
+            if (c.get("name").asString().equals("Salário")) salary = c.get("id").asString();
         }
         return new Fx(s, cardId, account, food, salary);
     }
@@ -74,7 +74,7 @@ class CardIntegrationTest extends IntegrationTest {
     void onlyLast4() throws Exception {
         Session s = register();
         JsonNode c = body(call(post(ws(s, "/cards")), s.token(), card("Inter", "9876", 5, 12, "1000.00")));
-        assertThat(c.get("last4").asText()).isEqualTo("9876");
+        assertThat(c.get("last4").asString()).isEqualTo("9876");
         assertThat(c.get("available").decimalValue()).isEqualByComparingTo("1000.00");
         List<Map<String, Object>> invalid = List.of(
                 card("A", "4111111111111111", 5, 12, "1000.00"),
@@ -106,9 +106,9 @@ class CardIntegrationTest extends IntegrationTest {
 
         JsonNode nov = statement(f, "2026-11");
         assertThat(nov.get("total").decimalValue()).isEqualByComparingTo("120.00");
-        assertThat(nov.get("closingDate").asText()).isEqualTo("2026-11-10");
-        assertThat(nov.get("dueDate").asText()).isEqualTo("2026-11-17");
-        assertThat(nov.get("items").findValuesAsText("description")).containsExactly("Mercado");
+        assertThat(nov.get("closingDate").asString()).isEqualTo("2026-11-10");
+        assertThat(nov.get("dueDate").asString()).isEqualTo("2026-11-17");
+        assertThat(nov.get("items").findValuesAsString("description")).containsExactly("Mercado");
         assertThat(statement(f, "2026-12").get("total").decimalValue()).isEqualByComparingTo("15.50");
     }
 
@@ -118,7 +118,7 @@ class CardIntegrationTest extends IntegrationTest {
         Fx f = fixture();
         JsonNode p = body(buy(f, purchase("Geladeira", "100.00", 3, "2026-11-20", f.food())));
         assertThat(p.get("installments").asInt()).isEqualTo(3);
-        assertThat(p.get("parts").findValuesAsText("statement")).containsExactly("2026-12", "2027-01", "2027-02");
+        assertThat(p.get("parts").findValuesAsString("statement")).containsExactly("2026-12", "2027-01", "2027-02");
 
         JsonNode dez = statement(f, "2026-12");
         assertThat(dez.get("items").get(0).get("number").asInt()).isEqualTo(1);
@@ -171,16 +171,16 @@ class CardIntegrationTest extends IntegrationTest {
         MockHttpServletResponse partial = call(post(ws(f.s(), "/cards/" + f.card() + "/statements/2026-11/payments")), f.s().token(),
                 Map.of("accountId", f.account(), "amount", "100.00", "date", "2026-11-15"));
         assertThat(partial.getStatus()).isEqualTo(201);
-        assertThat(body(partial).get("type").asText()).isEqualTo("CARD_PAYMENT");
+        assertThat(body(partial).get("type").asString()).isEqualTo("CARD_PAYMENT");
         JsonNode st = statement(f, "2026-11");
         assertThat(st.get("paid").decimalValue()).isEqualByComparingTo("100.00");
         assertThat(st.get("remaining").decimalValue()).isEqualByComparingTo("150.00");
-        assertThat(st.get("status").asText()).isIn("OPEN", "CLOSED");
+        assertThat(st.get("status").asString()).isIn("OPEN", "CLOSED");
 
         call(post(ws(f.s(), "/cards/" + f.card() + "/statements/2026-11/payments")), f.s().token(),
                 Map.of("accountId", f.account(), "amount", "150.00", "date", "2026-11-16"));
         st = statement(f, "2026-11");
-        assertThat(st.get("status").asText()).isEqualTo("PAID");
+        assertThat(st.get("status").asString()).isEqualTo("PAID");
         assertThat(st.get("payments")).hasSize(2);
 
         JsonNode acc = body(call(get(ws(f.s(), "/accounts/" + f.account())), f.s().token(), null));
@@ -190,7 +190,7 @@ class CardIntegrationTest extends IntegrationTest {
 
         JsonNode list = body(call(get(ws(f.s(), "/transactions?month=2026-11&type=CARD_PAYMENT")), f.s().token(), null));
         assertThat(list.get("total").asInt()).isEqualTo(2);
-        assertThat(list.get("items").get(0).get("card").get("name").asText()).isEqualTo("Nubank");
+        assertThat(list.get("items").get(0).get("card").get("name").asString()).isEqualTo("Nubank");
     }
 
     @Test
@@ -204,10 +204,10 @@ class CardIntegrationTest extends IntegrationTest {
                 Map.of("accountId", f.account(), "amount", "1.00", "date", "2026-11-15")).getStatus()).isEqualTo(400);
         Fx other = fixture();
         MockHttpServletResponse foreign = call(post(path), f.s().token(), Map.of("accountId", other.account(), "amount", "1.00", "date", "2026-11-15"));
-        assertThat(body(foreign).get("message").asText()).isEqualTo("Account not found");
+        assertThat(body(foreign).get("message").asString()).isEqualTo("Account not found");
 
-        String tx = body(call(post(path), f.s().token(), Map.of("accountId", f.account(), "amount", "50.00", "date", "2026-11-15"))).get("id").asText();
-        assertThat(statement(f, "2026-11").get("status").asText()).isEqualTo("PAID");
+        String tx = body(call(post(path), f.s().token(), Map.of("accountId", f.account(), "amount", "50.00", "date", "2026-11-15"))).get("id").asString();
+        assertThat(statement(f, "2026-11").get("status").asString()).isEqualTo("PAID");
         assertThat(call(delete(ws(f.s(), "/transactions/" + tx)), f.s().token(), null).getStatus()).isEqualTo(204);
         assertThat(statement(f, "2026-11").get("paid").decimalValue()).isEqualByComparingTo("0");
     }
@@ -221,16 +221,16 @@ class CardIntegrationTest extends IntegrationTest {
                 "description", "Fatura", "accountId", f.account(), "categoryId", f.food()));
         MockHttpServletResponse created = call(post(ws(f.s(), "/transactions")), f.s().token(), generic);
         assertThat(created.getStatus()).isEqualTo(400);
-        assertThat(body(created).get("message").asText()).isEqualTo("Card payments are made through the card statement");
+        assertThat(body(created).get("message").asString()).isEqualTo("Card payments are made through the card statement");
 
         buy(f, purchase("Mercado", "50.00", 1, "2026-11-03", f.food()));
         String tx = body(call(post(ws(f.s(), "/cards/" + f.card() + "/statements/2026-11/payments")), f.s().token(),
-                Map.of("accountId", f.account(), "amount", "50.00", "date", "2026-11-15"))).get("id").asText();
+                Map.of("accountId", f.account(), "amount", "50.00", "date", "2026-11-15"))).get("id").asString();
         MockHttpServletResponse edit = call(put(ws(f.s(), "/transactions/" + tx)), f.s().token(),
                 Map.of("type", "EXPENSE", "amount", "1.00", "date", "2026-11-15", "description", "Virou despesa",
                         "accountId", f.account(), "categoryId", f.food()));
         assertThat(edit.getStatus()).isEqualTo(400);
-        assertThat(body(edit).get("message").asText()).isEqualTo("Card payments are changed through the card statement");
+        assertThat(body(edit).get("message").asString()).isEqualTo("Card payments are changed through the card statement");
     }
 
     @Test
@@ -242,8 +242,8 @@ class CardIntegrationTest extends IntegrationTest {
         String past = thisMonth.minusMonths(2).toString();
         buy(f, purchase("Futura", "10.00", 1, thisMonth.plusMonths(2).atDay(1).toString(), f.food()));
         buy(f, purchase("Passada", "10.00", 1, thisMonth.minusMonths(2).atDay(1).toString(), f.food()));
-        assertThat(statement(f, future).get("status").asText()).isEqualTo("OPEN");
-        assertThat(statement(f, past).get("status").asText()).isEqualTo("CLOSED");
+        assertThat(statement(f, future).get("status").asString()).isEqualTo("OPEN");
+        assertThat(statement(f, past).get("status").asString()).isEqualTo("CLOSED");
     }
 
     @Test
@@ -256,18 +256,18 @@ class CardIntegrationTest extends IntegrationTest {
                 "description", "Café", "accountId", f.account(), "categoryId", f.food()));
         JsonNode d = body(call(get(ws(f.s(), "/dashboard?month=2026-11")), f.s().token(), null));
         assertThat(d.get("expense").decimalValue()).isEqualByComparingTo("300.00");
-        assertThat(d.get("expensesByCategory").get(0).get("name").asText()).isEqualTo("Alimentação");
+        assertThat(d.get("expensesByCategory").get(0).get("name").asString()).isEqualTo("Alimentação");
         assertThat(d.get("expensesByCategory").get(0).get("amount").decimalValue()).isEqualByComparingTo("300.00");
         assertThat(d.get("cards")).hasSize(1);
         assertThat(d.get("cards").get(0).get("statementTotal").decimalValue()).isEqualByComparingTo("290.00");
-        assertThat(d.get("cards").get(0).get("dueDate").asText()).isEqualTo("2026-11-17");
+        assertThat(d.get("cards").get(0).get("dueDate").asString()).isEqualTo("2026-11-17");
     }
 
     @Test
     @DisplayName("Editar compra refaz as parcelas; excluir tira das faturas; cartão com compras só arquiva")
     void editDeleteArchive() throws Exception {
         Fx f = fixture();
-        String p = body(buy(f, purchase("Sofá", "300.00", 3, "2026-11-05", f.food()))).get("id").asText();
+        String p = body(buy(f, purchase("Sofá", "300.00", 3, "2026-11-05", f.food()))).get("id").asString();
         MockHttpServletResponse edit = call(put(ws(f.s(), "/cards/" + f.card() + "/purchases/" + p)), f.s().token(),
                 purchase("Sofá (2×)", "300.00", 2, "2026-11-05", f.food()));
         assertThat(edit.getStatus()).isEqualTo(200);
@@ -276,7 +276,7 @@ class CardIntegrationTest extends IntegrationTest {
 
         MockHttpServletResponse del = call(delete(ws(f.s(), "/cards/" + f.card())), f.s().token(), null);
         assertThat(del.getStatus()).isEqualTo(409);
-        assertThat(body(del).get("message").asText()).isEqualTo("Card has purchases; archive it instead");
+        assertThat(body(del).get("message").asString()).isEqualTo("Card has purchases; archive it instead");
 
         assertThat(call(delete(ws(f.s(), "/cards/" + f.card() + "/purchases/" + p)), f.s().token(), null).getStatus()).isEqualTo(204);
         assertThat(statement(f, "2026-11").get("items")).isEmpty();
@@ -294,14 +294,14 @@ class CardIntegrationTest extends IntegrationTest {
         assertThat(body(r).get("closingDay").asInt()).isEqualTo(3);
         MockHttpServletResponse b = buy(f, purchase("X", "10.00", 1, "2026-11-01", f.food()));
         assertThat(b.getStatus()).isEqualTo(400);
-        assertThat(body(b).get("message").asText()).isEqualTo("Card is archived");
+        assertThat(body(b).get("message").asString()).isEqualTo("Card is archived");
     }
 
     @Test
     @DisplayName("Isolamento: cartão, compra e fatura de outro espaço são inacessíveis; nada da vítima muda")
     void isolation() throws Exception {
         Fx victim = fixture();
-        String p = body(buy(victim, purchase("Segredo", "77.00", 1, "2026-11-05", victim.food()))).get("id").asText();
+        String p = body(buy(victim, purchase("Segredo", "77.00", 1, "2026-11-05", victim.food()))).get("id").asString();
         Fx eve = fixture();
         String vc = "/cards/" + victim.card();
         for (MockHttpServletResponse r : new MockHttpServletResponse[]{
@@ -321,8 +321,8 @@ class CardIntegrationTest extends IntegrationTest {
             assertThat(r.getContentAsString()).doesNotContain("Segredo");
         }
         MockHttpServletResponse foreignCategory = buy(eve, purchase("X", "1.00", 1, "2026-11-01", victim.food()));
-        assertThat(body(foreignCategory).get("message").asText()).isEqualTo("Category not found");
-        assertThat(statement(victim, "2026-11").get("items").findValuesAsText("description")).containsExactly("Segredo");
+        assertThat(body(foreignCategory).get("message").asString()).isEqualTo("Category not found");
+        assertThat(statement(victim, "2026-11").get("items").findValuesAsString("description")).containsExactly("Segredo");
     }
 
     @Test
@@ -335,9 +335,9 @@ class CardIntegrationTest extends IntegrationTest {
         assertThat(call(put(ws(f.s(), "/cards/" + f.card())), f.s().token(), card("NUBANK", "1234", 10, 17, "5000.00")).getStatus())
                 .as("só maiúsculas do próprio").isEqualTo(200);
 
-        String p = body(buy(f, purchase("Jantar", "80.00", 1, "2026-11-05", f.food()))).get("id").asText();
+        String p = body(buy(f, purchase("Jantar", "80.00", 1, "2026-11-05", f.food()))).get("id").asString();
         call(put(ws(f.s(), "/categories/" + f.food())), f.s().token(), Map.of("name", "Alimentação", "color", "#f97316", "archived", true));
-        assertThat(body(buy(f, purchase("Outro", "10.00", 1, "2026-11-05", f.food()))).get("message").asText()).isEqualTo("Category is archived");
+        assertThat(body(buy(f, purchase("Outro", "10.00", 1, "2026-11-05", f.food()))).get("message").asString()).isEqualTo("Category is archived");
         assertThat(call(put(ws(f.s(), "/cards/" + f.card() + "/purchases/" + p)), f.s().token(),
                 purchase("Jantar (corrigido)", "85.00", 1, "2026-11-05", f.food())).getStatus()).as("mantém a categoria que já era dela").isEqualTo(200);
 
@@ -345,13 +345,13 @@ class CardIntegrationTest extends IntegrationTest {
         call(post(pay), f.s().token(), Map.of("accountId", f.account(), "amount", "85.00", "date", "2026-11-15"));
         call(delete(ws(f.s(), "/cards/" + f.card() + "/purchases/" + p)), f.s().token(), null);
         assertThat(call(delete(ws(f.s(), "/cards/" + f.card())), f.s().token(), null).getStatus()).as("ainda há pagamento").isEqualTo(409);
-        assertThat(statement(f, "2026-11").get("status").asText()).as("sem compras, nada a pagar").isIn("OPEN", "CLOSED");
+        assertThat(statement(f, "2026-11").get("status").asString()).as("sem compras, nada a pagar").isIn("OPEN", "CLOSED");
 
         Map<String, Object> archived = card("Nubank", "1234", 10, 17, "5000.00");
         archived.put("archived", true);
         call(put(ws(f.s(), "/cards/" + f.card())), f.s().token(), archived);
         JsonNode d = body(call(get(ws(f.s(), "/dashboard?month=2026-11")), f.s().token(), null));
-        assertThat(d.get("cards").findValuesAsText("name")).containsExactly("Inter");
+        assertThat(d.get("cards").findValuesAsString("name")).containsExactly("Inter");
         assertThat(call(get(ws(f.s(), "/cards")), f.s().token(), null).getStatus()).isEqualTo(200);
         assertThat(body(call(get(ws(f.s(), "/cards")), f.s().token(), null))).hasSize(2);
         assertThat(call(get(ws(f.s(), "/cards/" + f.card() + "/purchases/" + p)), f.s().token(), null).getStatus()).isIn(404, 405);

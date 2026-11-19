@@ -1,6 +1,6 @@
 package com.sskings.bolso.auth;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.sskings.bolso.support.IntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,22 +31,22 @@ class AuthIntegrationTest extends IntegrationTest {
         MockHttpServletResponse r = register(Map.of("name", "Ana Souza", "email", email, "password", PASSWORD));
         assertThat(r.getStatus()).isEqualTo(201);
         JsonNode b = body(r);
-        assertThat(b.get("token").asText()).isNotBlank();
-        assertThat(b.get("user").get("email").asText()).isEqualTo(email);
+        assertThat(b.get("token").asString()).isNotBlank();
+        assertThat(b.get("user").get("email").asString()).isEqualTo(email);
         assertThat(b.get("user").has("passwordHash")).isFalse();
 
-        JsonNode me = body(call(get("/api/me"), b.get("token").asText(), null));
-        assertThat(me.get("name").asText()).isEqualTo("Ana Souza");
+        JsonNode me = body(call(get("/api/me"), b.get("token").asString(), null));
+        assertThat(me.get("name").asString()).isEqualTo("Ana Souza");
         assertThat(me.get("workspaces")).hasSize(1);
-        assertThat(me.get("workspaces").get(0).get("name").asText()).isEqualTo("Pessoal");
-        assertThat(me.get("workspaces").get(0).get("role").asText()).isEqualTo("OWNER");
+        assertThat(me.get("workspaces").get(0).get("name").asString()).isEqualTo("Pessoal");
+        assertThat(me.get("workspaces").get(0).get("role").asString()).isEqualTo("OWNER");
 
-        String wid = me.get("workspaces").get(0).get("id").asText();
-        String token = b.get("token").asText();
+        String wid = me.get("workspaces").get(0).get("id").asString();
+        String token = b.get("token").asString();
         assertThat(body(call(get("/api/workspaces/" + wid + "/accounts"), token, null))).hasSize(1);
         JsonNode cats = body(call(get("/api/workspaces/" + wid + "/categories"), token, null));
         assertThat(cats.size()).isGreaterThanOrEqualTo(8);
-        assertThat(cats.findValuesAsText("kind")).contains("INCOME", "EXPENSE");
+        assertThat(cats.findValuesAsString("kind")).contains("INCOME", "EXPENSE");
     }
 
     @Test
@@ -56,7 +56,7 @@ class AuthIntegrationTest extends IntegrationTest {
         assertThat(register(Map.of("name", "Ana", "email", "  " + email.toUpperCase() + " ", "password", PASSWORD)).getStatus()).isEqualTo(201);
         MockHttpServletResponse dup = register(Map.of("name", "Outra", "email", email, "password", PASSWORD));
         assertThat(dup.getStatus()).isEqualTo(409);
-        assertThat(body(dup).get("message").asText()).isEqualTo("Email already in use");
+        assertThat(body(dup).get("message").asString()).isEqualTo("Email already in use");
         assertThat(login(email, PASSWORD).getStatus()).isEqualTo(200);
     }
 
@@ -95,7 +95,7 @@ class AuthIntegrationTest extends IntegrationTest {
         MockHttpServletResponse unknown = login("ninguem-" + s.email(), "Errada-0000x");
         assertThat(wrong.getStatus()).isEqualTo(401);
         assertThat(unknown.getStatus()).isEqualTo(401);
-        assertThat(body(wrong).get("message").asText()).isEqualTo(body(unknown).get("message").asText())
+        assertThat(body(wrong).get("message").asString()).isEqualTo(body(unknown).get("message").asString())
                 .isEqualTo("Invalid email or password");
     }
 
@@ -106,7 +106,7 @@ class AuthIntegrationTest extends IntegrationTest {
         for (int i = 0; i < 5; i++) assertThat(login(s.email(), "Errada-0000x").getStatus()).isEqualTo(401);
         MockHttpServletResponse locked = login(s.email(), PASSWORD);
         assertThat(locked.getStatus()).isEqualTo(429);
-        assertThat(body(locked).get("message").asText()).isEqualTo("Too many failed attempts. Try again later");
+        assertThat(body(locked).get("message").asString()).isEqualTo("Too many failed attempts. Try again later");
 
         clock.advance(Duration.ofMinutes(16));
         assertThat(login(s.email(), PASSWORD).getStatus()).isEqualTo(200);
@@ -139,12 +139,12 @@ class AuthIntegrationTest extends IntegrationTest {
         String tampered = s.token().substring(0, s.token().length() - 3) + "abc";
         assertThat(call(get("/api/me"), tampered, null).getStatus()).isEqualTo(401);
 
-        String other = body(login(s.email(), PASSWORD)).get("token").asText();
+        String other = body(login(s.email(), PASSWORD)).get("token").asString();
         assertThat(call(post("/api/auth/logout"), s.token(), null).getStatus()).isEqualTo(204);
         assertThat(call(get("/api/me"), s.token(), null).getStatus()).isEqualTo(401);
         assertThat(call(get("/api/me"), other, null).getStatus()).as("logout encerra todas as sessões").isEqualTo(401);
 
-        String fresh = body(login(s.email(), PASSWORD)).get("token").asText();
+        String fresh = body(login(s.email(), PASSWORD)).get("token").asString();
         clock.advance(Duration.ofHours(13));
         assertThat(call(get("/api/me"), fresh, null).getStatus()).as("expira em 12 h").isEqualTo(401);
     }
@@ -161,7 +161,7 @@ class AuthIntegrationTest extends IntegrationTest {
         MockHttpServletResponse ok = call(put("/api/me/password"), s.token(),
                 Map.of("currentPassword", PASSWORD, "newPassword", "Pirilampo7390"));
         assertThat(ok.getStatus()).isEqualTo(200);
-        String newToken = body(ok).get("token").asText();
+        String newToken = body(ok).get("token").asString();
         assertThat(call(get("/api/me"), s.token(), null).getStatus()).isEqualTo(401);
         assertThat(call(get("/api/me"), newToken, null).getStatus()).isEqualTo(200);
         assertThat(login(s.email(), PASSWORD).getStatus()).isEqualTo(401);
@@ -187,6 +187,6 @@ class AuthIntegrationTest extends IntegrationTest {
         Session s = register();
         MockHttpServletResponse r = call(put("/api/me/password"), s.token(), Map.of("currentPassword", PASSWORD, "newPassword", PASSWORD));
         assertThat(r.getStatus()).isEqualTo(400);
-        assertThat(body(r).get("message").asText()).isEqualTo("New password must be different from the current one");
+        assertThat(body(r).get("message").asString()).isEqualTo("New password must be different from the current one");
     }
 }

@@ -1,6 +1,6 @@
 package com.sskings.bolso.workspace;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.sskings.bolso.support.IntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,7 +21,7 @@ class WorkspaceIntegrationTest extends IntegrationTest {
     private String invite(Session owner) throws Exception {
         MockHttpServletResponse r = call(post(ws(owner, "/invites")), owner.token(), null);
         assertThat(r.getStatus()).as(r.getContentAsString()).isEqualTo(201);
-        return body(r).get("code").asText();
+        return body(r).get("code").asString();
     }
 
     private MockHttpServletResponse accept(Session who, String code) throws Exception {
@@ -40,9 +40,9 @@ class WorkspaceIntegrationTest extends IntegrationTest {
         Session ana = register();
         MockHttpServletResponse r = call(post("/api/workspaces"), ana.token(), Map.of("name", "Casa"));
         assertThat(r.getStatus()).isEqualTo(201);
-        String id = body(r).get("id").asText();
+        String id = body(r).get("id").asString();
         JsonNode me = body(call(get("/api/me"), ana.token(), null));
-        assertThat(me.get("workspaces").findValuesAsText("name")).containsExactly("Pessoal", "Casa");
+        assertThat(me.get("workspaces").findValuesAsString("name")).containsExactly("Pessoal", "Casa");
         assertThat(body(call(get("/api/workspaces/" + id + "/accounts"), ana.token(), null))).hasSize(1);
         assertThat(call(post("/api/workspaces"), ana.token(), Map.of("name", " ")).getStatus()).isEqualTo(400);
         assertThat(call(post("/api/workspaces"), ana.token(), Map.of("name", "Casa\nFalsa")).getStatus()).isEqualTo(400);
@@ -58,16 +58,16 @@ class WorkspaceIntegrationTest extends IntegrationTest {
         Session bruno = register("Bruno Lima", email());
         MockHttpServletResponse ok = accept(bruno, code);
         assertThat(ok.getStatus()).isEqualTo(200);
-        assertThat(body(ok).get("workspaceId").asText()).isEqualTo(ana.workspaceId());
+        assertThat(body(ok).get("workspaceId").asString()).isEqualTo(ana.workspaceId());
 
         JsonNode me = body(call(get("/api/me"), bruno.token(), null));
         assertThat(me.get("workspaces")).hasSize(2);
-        assertThat(me.get("workspaces").get(1).get("role").asText()).isEqualTo("MEMBER");
+        assertThat(me.get("workspaces").get(1).get("role").asString()).isEqualTo("MEMBER");
         assertThat(call(get(ws(ana, "/accounts")), bruno.token(), null).getStatus()).isEqualTo(200);
 
         Session carla = register("Carla Dias", email());
         assertThat(accept(carla, code).getStatus()).as("uso único").isEqualTo(404);
-        assertThat(body(accept(carla, code)).get("message").asText()).isEqualTo("Invalid or expired invite");
+        assertThat(body(accept(carla, code)).get("message").asString()).isEqualTo("Invalid or expired invite");
     }
 
     @Test
@@ -81,7 +81,7 @@ class WorkspaceIntegrationTest extends IntegrationTest {
 
         Session bruno = register("Bruno Lima", email());
         clock.advance(Duration.ofHours(73));
-        String fresh = body(call(post("/api/auth/login"), null, Map.of("email", bruno.email(), "password", PASSWORD))).get("token").asText();
+        String fresh = body(call(post("/api/auth/login"), null, Map.of("email", bruno.email(), "password", PASSWORD))).get("token").asString();
         assertThat(call(post("/api/invites/" + code + "/accept"), fresh, null).getStatus()).as("vencido").isEqualTo(404);
         clock.reset();
 
@@ -98,7 +98,7 @@ class WorkspaceIntegrationTest extends IntegrationTest {
         JsonNode pending = body(call(get(ws(ana, "/invites")), ana.token(), null));
         assertThat(pending).hasSize(1);
         assertThat(pending.get(0).has("code")).as("o código não é exibido de novo").isFalse();
-        String inviteId = pending.get(0).get("id").asText();
+        String inviteId = pending.get(0).get("id").asString();
         assertThat(call(delete(ws(ana, "/invites/" + inviteId)), ana.token(), null).getStatus()).isEqualTo(204);
         assertThat(accept(register(), code).getStatus()).isEqualTo(404);
         assertThat(body(call(get(ws(ana, "/invites")), ana.token(), null))).isEmpty();
@@ -117,7 +117,7 @@ class WorkspaceIntegrationTest extends IntegrationTest {
         assertThat(call(delete(ws(bruno, "")), bruno.token(), null).getStatus()).isEqualTo(403);
 
         assertThat(call(put(ws(ana, "")), ana.token(), Map.of("name", "Casa")).getStatus()).isEqualTo(200);
-        assertThat(body(call(get("/api/me"), bruno.token(), null)).get("workspaces").get(1).get("name").asText()).isEqualTo("Casa");
+        assertThat(body(call(get("/api/me"), bruno.token(), null)).get("workspaces").get(1).get("name").asString()).isEqualTo("Casa");
     }
 
     @Test
@@ -126,8 +126,8 @@ class WorkspaceIntegrationTest extends IntegrationTest {
         Session ana = register();
         Session bruno = withMember(ana);
         JsonNode members = body(call(get(ws(ana, "/members")), bruno.token(), null));
-        assertThat(members.findValuesAsText("role")).containsExactly("OWNER", "MEMBER");
-        assertThat(members.findValuesAsText("name")).containsExactly("Ana Souza", "Bruno Lima");
+        assertThat(members.findValuesAsString("role")).containsExactly("OWNER", "MEMBER");
+        assertThat(members.findValuesAsString("name")).containsExactly("Ana Souza", "Bruno Lima");
 
         assertThat(call(delete(ws(ana, "/members/" + bruno.userId())), ana.token(), null).getStatus()).isEqualTo(204);
         assertThat(call(get(ws(ana, "/accounts")), bruno.token(), null).getStatus()).isEqualTo(404);
@@ -141,7 +141,7 @@ class WorkspaceIntegrationTest extends IntegrationTest {
         Session bruno = withMember(ana);
         MockHttpServletResponse lastOwner = call(post(ws(ana, "/leave")), ana.token(), null);
         assertThat(lastOwner.getStatus()).isEqualTo(400);
-        assertThat(body(lastOwner).get("message").asText()).isEqualTo("The last owner cannot leave the workspace");
+        assertThat(body(lastOwner).get("message").asString()).isEqualTo("The last owner cannot leave the workspace");
         assertThat(call(delete(ws(ana, "/members/" + ana.userId())), ana.token(), null).getStatus()).isEqualTo(400);
 
         assertThat(call(put(ws(ana, "/members/" + bruno.userId())), ana.token(), Map.of("role", "OWNER")).getStatus()).isEqualTo(200);
@@ -159,7 +159,7 @@ class WorkspaceIntegrationTest extends IntegrationTest {
         for (String path : new String[]{"", "/accounts", "/categories", "/members", "/invites"}) {
             MockHttpServletResponse r = call(get(ws(ana, path)), eve.token(), null);
             assertThat(r.getStatus()).as(path).isEqualTo(404);
-            assertThat(body(r).get("message").asText()).isEqualTo("Workspace not found");
+            assertThat(body(r).get("message").asString()).isEqualTo("Workspace not found");
         }
         assertThat(call(get("/api/workspaces/00000000-0000-0000-0000-000000000000/accounts"), eve.token(), null).getStatus()).isEqualTo(404);
         assertThat(call(get("/api/workspaces/nao-e-uuid/accounts"), eve.token(), null).getStatus()).isEqualTo(400);
@@ -169,9 +169,9 @@ class WorkspaceIntegrationTest extends IntegrationTest {
     @DisplayName("Excluir o espaço: só o dono; apaga contas, categorias e lançamentos; membros perdem o acesso")
     void deleteWorkspace() throws Exception {
         Session ana = register();
-        String casa = body(call(post("/api/workspaces"), ana.token(), Map.of("name", "Casa"))).get("id").asText();
+        String casa = body(call(post("/api/workspaces"), ana.token(), Map.of("name", "Casa"))).get("id").asString();
         Session bruno = register("Bruno Lima", email());
-        String code = body(call(post("/api/workspaces/" + casa + "/invites"), ana.token(), null)).get("code").asText();
+        String code = body(call(post("/api/workspaces/" + casa + "/invites"), ana.token(), null)).get("code").asString();
         accept(bruno, code);
         assertThat(call(delete("/api/workspaces/" + casa), ana.token(), null).getStatus()).isEqualTo(204);
         assertThat(call(get("/api/workspaces/" + casa + "/accounts"), bruno.token(), null).getStatus()).isEqualTo(404);
@@ -187,7 +187,7 @@ class WorkspaceIntegrationTest extends IntegrationTest {
         assertThat(call(delete(ws(ana, "/invites/00000000-0000-0000-0000-000000000000")), ana.token(), null).getStatus()).isEqualTo(404);
         assertThat(call(put(ws(ana, "/members/" + ana.userId())), ana.token(), Map.of("role", "BOSS")).getStatus()).isEqualTo(400);
         JsonNode w = body(call(get(ws(ana, "")), ana.token(), null));
-        assertThat(w.get("role").asText()).isEqualTo("OWNER");
-        assertThat(w.get("name").asText()).isEqualTo("Pessoal");
+        assertThat(w.get("role").asString()).isEqualTo("OWNER");
+        assertThat(w.get("name").asString()).isEqualTo("Pessoal");
     }
 }

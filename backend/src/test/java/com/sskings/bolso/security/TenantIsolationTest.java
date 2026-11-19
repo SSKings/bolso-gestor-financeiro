@@ -1,6 +1,6 @@
 package com.sskings.bolso.security;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.sskings.bolso.support.IntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,13 +24,13 @@ class TenantIsolationTest extends IntegrationTest {
     @DisplayName("Intrusa não lê, altera nem apaga nada de outro espaço — por nenhuma rota")
     void everyRouteIsIsolated() throws Exception {
         Session victim = register();
-        String account = body(call(get(ws(victim, "/accounts")), victim.token(), null)).get(0).get("id").asText();
-        String category = body(call(get(ws(victim, "/categories")), victim.token(), null)).get(0).get("id").asText();
-        String kind = body(call(get(ws(victim, "/categories")), victim.token(), null)).get(0).get("kind").asText();
+        String account = body(call(get(ws(victim, "/accounts")), victim.token(), null)).get(0).get("id").asString();
+        String category = body(call(get(ws(victim, "/categories")), victim.token(), null)).get(0).get("id").asString();
+        String kind = body(call(get(ws(victim, "/categories")), victim.token(), null)).get(0).get("kind").asString();
         String tx = body(call(post(ws(victim, "/transactions")), victim.token(), Map.of("type", kind, "amount", "10.00",
-                "date", "2026-11-01", "description", "Segredo", "accountId", account, "categoryId", category))).get("id").asText();
+                "date", "2026-11-01", "description", "Segredo", "accountId", account, "categoryId", category))).get("id").asString();
         String invite = body(call(get(ws(victim, "/invites")), victim.token(), null)).isEmpty()
-                ? body(call(post(ws(victim, "/invites")), victim.token(), null)).get("id").asText() : null;
+                ? body(call(post(ws(victim, "/invites")), victim.token(), null)).get("id").asString() : null;
 
         Session eve = register("Eve Intrusa", email());
         String vw = "/api/workspaces/" + victim.workspaceId();
@@ -73,10 +73,10 @@ class TenantIsolationTest extends IntegrationTest {
 
         // nada da vítima mudou
         JsonNode t = body(call(get(ws(victim, "/transactions/" + tx)), victim.token(), null));
-        assertThat(t.get("description").asText()).isEqualTo("Segredo");
-        assertThat(body(call(get(ws(victim, "/accounts")), victim.token(), null)).findValuesAsText("name")).containsExactly("Carteira");
+        assertThat(t.get("description").asString()).isEqualTo("Segredo");
+        assertThat(body(call(get(ws(victim, "/accounts")), victim.token(), null)).findValuesAsString("name")).containsExactly("Carteira");
         assertThat(body(call(get(ws(victim, "/members")), victim.token(), null))).hasSize(1);
         assertThat(body(call(get(ws(victim, "/invites")), victim.token(), null))).hasSize(1);
-        assertThat(body(call(get("/api/me"), victim.token(), null)).get("workspaces").get(0).get("name").asText()).isEqualTo("Pessoal");
+        assertThat(body(call(get("/api/me"), victim.token(), null)).get("workspaces").get(0).get("name").asString()).isEqualTo("Pessoal");
     }
 }

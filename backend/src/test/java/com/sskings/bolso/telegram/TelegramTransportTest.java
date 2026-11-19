@@ -1,7 +1,7 @@
 package com.sskings.bolso.telegram;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.sskings.bolso.support.FakeTelegram;
 import com.sskings.bolso.support.MutableClock;
 import org.junit.jupiter.api.DisplayName;

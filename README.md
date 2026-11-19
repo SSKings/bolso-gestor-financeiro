@@ -3,7 +3,7 @@
 <p>
   <img src="https://github.com/SSKings/bolso-gestor-financeiro/actions/workflows/ci.yml/badge.svg" alt="CI"/>
   <img src="https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white" alt="Java 17"/>
-  <img src="https://img.shields.io/badge/Spring%20Boot-3.5-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 3.5"/>
+  <img src="https://img.shields.io/badge/Spring%20Boot-4.1-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 4.1"/>
   <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19"/>
 </p>
 
@@ -111,7 +111,7 @@ dados de teste: rode num ambiente de homologação).
 
 ## Stack
 
-**Backend:** Java 17 · Spring Boot 3.5 · Spring Security · JWT · Spring Data JPA · Flyway · PostgreSQL ·
+**Backend:** Java 17 · Spring Boot 4.1 (Spring 7, Security 7, Jackson 3, Hibernate 7) · JWT · Spring Data JPA · Flyway · PostgreSQL ·
 Testcontainers · JaCoCo
 **Frontend:** React 19 · TypeScript · Vite · Tailwind CSS · React Router · Vitest · Testing Library
 **Infra:** Docker · nginx · GitHub Actions · Dependabot

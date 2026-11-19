@@ -1,11 +1,3 @@
-# Exceções do scan de imagens (CI). Toda exceção tem justificativa e validade: vencida, o CI volta a barrar.
-vulnerabilities:
-  # Spring Framework 6.2.x: as correções só saíram na linha 7 (Spring Boot 4); a 6.2/Boot 3.5 saiu do suporte gratuito.
-  # Não exploráveis no Bolso: exigem XsltView (RCE/SSRF) ou SSE com fragmentos de view — a API é só REST/JSON e não
-  # tem nenhum dos dois. Plano: migrar para Spring Boot 4 antes da validade.
-  - id: CVE-2026-47884
-    statement: "XsltView não é usado (API só JSON). Correção só no Spring 7 — migração para Boot 4 planejada."
-    expired_at: 2027-02-28
-  - id: CVE-2026-47890
-    statement: "Sem SSE nem view fragments. Correção só no Spring 7 — migração para Boot 4 planejada."
-    expired_at: 2027-02-28
+# Exceções do scan de imagens (CI). Toda exceção precisa de justificativa e validade (expired_at): vencida, o CI volta
+# a barrar. Hoje não há nenhuma: as falhas do Spring 6.2 (CVE-2026-47884/47890) foram resolvidas com o Spring Boot 4.
+vulnerabilities: []

@@ -100,6 +100,19 @@ Dependabot: atualizações semanais e alertas e correções automáticas de vuln
 - **Imagem do nginx** com 13 vulnerabilidades do Alpine (1 crítica): a imagem oficial ainda não tinha as correções;
   o build aplica as atualizações de segurança e remove o `curl`, que não é usado.
 
+## Atualização para Spring Boot 4 (resolvido)
+
+O Spring Boot 3.5 / Spring 6.2 saiu do suporte gratuito com duas falhas críticas sem correção na linha 6.2
+(CVE-2026-47884 e CVE-2026-47890 — não exploráveis aqui, mas sem saída). A migração para o Spring Boot 4.1 as
+resolve e zera as exceções do scan. Ela mesma revelou três mudanças de comportamento, pegas pelos testes ou pelo
+verificador de propriedades:
+- **Limite de corpo sem `Content-Length`**: continuava cortando a leitura, mas respondia 400 em vez de 413 — o Jackson 3
+  embrulha a exceção em mais camadas; o tratamento agora percorre toda a cadeia de causas (`ChunkedBodyLimitTest`).
+- **`/actuator/health` público passou a listar grupos** (sondas do Kubernetes, ligadas por padrão no Boot 4):
+  desligadas, a resposta volta a ser só `{"status":"UP"}` (`actuator`).
+- **`server.error.include-message`/`include-stacktrace` deixaram de existir** e passariam a ser ignoradas: movidas para
+  `spring.web.error.*` (o padrão já era não mostrar, mas a regra fica explícita).
+
 ## Riscos aceitos
 
 - **Token no localStorage**: o app abre logado no celular. A mitigação é não haver XSS (React escapa tudo, sem
@@ -108,7 +121,4 @@ Dependabot: atualizações semanais e alertas e correções automáticas de vuln
   etapas — fica para quando houver envio de e-mail.
 - **Bloqueio de conta permite travar a conta de outra pessoa por alguns minutos** (equilíbrio usual; o limite por IP
   reduz o abuso).
-- **Spring Framework 6.2 (Spring Boot 3.5) fora do suporte gratuito**: duas falhas críticas (CVE-2026-47884 e
-  CVE-2026-47890) só têm correção no Spring 7. Não são exploráveis aqui — exigem `XsltView` ou SSE com fragmentos de
-  view, e a API é só JSON. Ficam como exceção no scan até **28/02/2027**; antes disso, migrar para Spring Boot 4.
 - **Limite por IP em memória**: vale por instância; com várias réplicas, o nginx continua limitando.

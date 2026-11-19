@@ -1,6 +1,6 @@
 package com.sskings.bolso.category;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.sskings.bolso.support.IntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,7 +20,7 @@ class CategoryIntegrationTest extends IntegrationTest {
         Session s = register();
         MockHttpServletResponse r = call(post(ws(s, "/categories")), s.token(), Map.of("name", "Pets", "kind", "EXPENSE", "color", "#AABBCC"));
         assertThat(r.getStatus()).isEqualTo(201);
-        assertThat(body(r).get("color").asText()).isEqualTo("#aabbcc");
+        assertThat(body(r).get("color").asString()).isEqualTo("#aabbcc");
         assertThat(call(post(ws(s, "/categories")), s.token(), Map.of("name", "pets", "kind", "EXPENSE", "color", "#000000")).getStatus()).isEqualTo(409);
         assertThat(call(post(ws(s, "/categories")), s.token(), Map.of("name", "Pets", "kind", "INCOME", "color", "#000000")).getStatus()).isEqualTo(201);
     }
@@ -45,32 +45,32 @@ class CategoryIntegrationTest extends IntegrationTest {
     @DisplayName("Editar nome/cor e arquivar; o tipo não muda; excluir só se não tiver lançamentos")
     void updateAndDelete() throws Exception {
         Session s = register();
-        String id = body(call(post(ws(s, "/categories")), s.token(), Map.of("name", "Pets", "kind", "EXPENSE", "color", "#000000"))).get("id").asText();
+        String id = body(call(post(ws(s, "/categories")), s.token(), Map.of("name", "Pets", "kind", "EXPENSE", "color", "#000000"))).get("id").asString();
         MockHttpServletResponse r = call(put(ws(s, "/categories/" + id)), s.token(), Map.of("name", "Animais", "color", "#ff0000", "archived", true));
         assertThat(r.getStatus()).isEqualTo(200);
         JsonNode c = body(r);
-        assertThat(c.get("name").asText()).isEqualTo("Animais");
+        assertThat(c.get("name").asString()).isEqualTo("Animais");
         assertThat(c.get("archived").asBoolean()).isTrue();
         assertThat(call(put(ws(s, "/categories/" + id)), s.token(), Map.of("name", "X", "color", "#ff0000", "archived", false, "kind", "INCOME")).getStatus())
                 .as("kind não é editável").isEqualTo(400);
         assertThat(call(delete(ws(s, "/categories/" + id)), s.token(), null).getStatus()).isEqualTo(204);
 
         JsonNode cats = body(call(get(ws(s, "/categories")), s.token(), null));
-        String used = cats.get(0).get("id").asText();
-        String account = body(call(get(ws(s, "/accounts")), s.token(), null)).get(0).get("id").asText();
-        String type = cats.get(0).get("kind").asText();
+        String used = cats.get(0).get("id").asString();
+        String account = body(call(get(ws(s, "/accounts")), s.token(), null)).get(0).get("id").asString();
+        String type = cats.get(0).get("kind").asString();
         call(post(ws(s, "/transactions")), s.token(), Map.of("type", type, "amount", "10.00", "date", "2026-11-01",
                 "description", "Algo", "accountId", account, "categoryId", used));
         MockHttpServletResponse inUse = call(delete(ws(s, "/categories/" + used)), s.token(), null);
         assertThat(inUse.getStatus()).isEqualTo(409);
-        assertThat(body(inUse).get("message").asText()).isEqualTo("Category has transactions; archive it instead");
+        assertThat(body(inUse).get("message").asString()).isEqualTo("Category has transactions; archive it instead");
     }
 
     @Test
     @DisplayName("Renomear categoria: para nome existente do mesmo tipo → 409; só maiúsculas → ok")
     void renameRules() throws Exception {
         Session s = register();
-        String id = body(call(post(ws(s, "/categories")), s.token(), Map.of("name", "Pets", "kind", "EXPENSE", "color", "#000000"))).get("id").asText();
+        String id = body(call(post(ws(s, "/categories")), s.token(), Map.of("name", "Pets", "kind", "EXPENSE", "color", "#000000"))).get("id").asString();
         assertThat(call(put(ws(s, "/categories/" + id)), s.token(), Map.of("name", "mercado", "color", "#000000")).getStatus()).isEqualTo(409);
         assertThat(call(put(ws(s, "/categories/" + id)), s.token(), Map.of("name", "PETS", "color", "#000000")).getStatus()).isEqualTo(200);
         assertThat(call(put(ws(s, "/categories/00000000-0000-0000-0000-000000000000")), s.token(), Map.of("name", "X", "color", "#000000")).getStatus()).isEqualTo(404);

@@ -1,6 +1,6 @@
 package com.sskings.bolso.telegram;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Clock;
@@ -38,10 +38,10 @@ public class TelegramBot {
 
     public void handle(JsonNode update) {
         JsonNode message = update.path("message");
-        if (message.isMissingNode() || message.path("from").path("is_bot").asBoolean(false) || !message.path("text").isTextual()) return;
+        if (message.isMissingNode() || message.path("from").path("is_bot").asBoolean(false) || !message.path("text").isString()) return;
         long chatId = message.path("chat").path("id").asLong();
         if (!allowed(chatId)) return;
-        String reply = commands.handle(chatId, "private".equals(message.path("chat").path("type").asText()), message.path("text").asText());
+        String reply = commands.handle(chatId, "private".equals(message.path("chat").path("type").asString()), message.path("text").asString());
         if (reply != null) client.sendMessage(chatId, reply);
     }
 

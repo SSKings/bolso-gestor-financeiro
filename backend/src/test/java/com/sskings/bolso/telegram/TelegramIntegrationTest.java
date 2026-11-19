@@ -1,6 +1,6 @@
 package com.sskings.bolso.telegram;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.sskings.bolso.support.FakeTelegram;
 import com.sskings.bolso.support.IntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,9 +40,9 @@ class TelegramIntegrationTest extends IntegrationTest {
     private Fx fixture() throws Exception {
         Session s = register();
         String account = body(call(post(ws(s, "/accounts")), s.token(),
-                Map.of("name", "Nubank", "type", "CHECKING", "initialBalance", "1000.00"))).get("id").asText();
+                Map.of("name", "Nubank", "type", "CHECKING", "initialBalance", "1000.00"))).get("id").asString();
         Map<String, String> cats = new HashMap<>();
-        for (JsonNode c : body(call(get(ws(s, "/categories")), s.token(), null))) cats.put(c.get("name").asText() + "/" + c.get("kind").asText(), c.get("id").asText());
+        for (JsonNode c : body(call(get(ws(s, "/categories")), s.token(), null))) cats.put(c.get("name").asString() + "/" + c.get("kind").asString(), c.get("id").asString());
         return new Fx(s, account, cats, ThreadLocalRandom.current().nextLong(1_000_000, Long.MAX_VALUE));
     }
 
@@ -53,7 +53,7 @@ class TelegramIntegrationTest extends IntegrationTest {
     private String code(Fx f) throws Exception {
         MockHttpServletResponse r = codeResponse(f.s(), f.s().workspaceId(), f.account());
         assertThat(r.getStatus()).as(r.getContentAsString()).isEqualTo(200);
-        return body(r).get("code").asText();
+        return body(r).get("code").asString();
     }
 
     private Fx linked() throws Exception {
@@ -81,29 +81,29 @@ class TelegramIntegrationTest extends IntegrationTest {
         call(post(ws(f.s(), "/rules")), f.s().token(), Map.of("pattern", "almoco", "categoryId", f.cats().get("Alimentação/EXPENSE")));
         JsonNode status = body(call(get("/api/me/telegram"), f.s().token(), null));
         assertThat(status.get("available").asBoolean()).isTrue();
-        assertThat(status.get("botUsername").asText()).isEqualTo("BolsoTesteBot");
+        assertThat(status.get("botUsername").asString()).isEqualTo("BolsoTesteBot");
         assertThat(status.get("link").isNull()).isTrue();
 
         JsonNode code = body(codeResponse(f.s(), f.s().workspaceId(), f.account()));
-        assertThat(code.get("link").asText()).isEqualTo("https://t.me/BolsoTesteBot?start=" + code.get("code").asText());
-        assertThat(code.get("code").asText()).matches("[A-Za-z0-9_-]{43}");
+        assertThat(code.get("link").asString()).isEqualTo("https://t.me/BolsoTesteBot?start=" + code.get("code").asString());
+        assertThat(code.get("code").asString()).matches("[A-Za-z0-9_-]{43}");
 
         FakeTelegram tg = FakeTelegram.get();
-        tg.send(f.chat(), "private", "/start " + code.get("code").asText());
+        tg.send(f.chat(), "private", "/start " + code.get("code").asString());
         assertThat(tg.reply(f.chat())).contains(LINKED).contains("<b>Nubank</b>");
         tg.send(f.chat(), "private", "32,50 Almoço no centro");
         String reply = tg.reply(f.chat());
         assertThat(reply).contains("Despesa de <b>R$ 32,50</b>").contains("Alimentação · Nubank");
 
         JsonNode t = transactions(f).get(0);
-        assertThat(t.get("source").asText()).isEqualTo("TELEGRAM");
-        assertThat(t.get("description").asText()).isEqualTo("Almoço no centro");
-        assertThat(t.get("category").get("name").asText()).isEqualTo("Alimentação");
-        assertThat(t.get("date").asText()).isEqualTo("2026-11-10");
-        assertThat(t.get("createdBy").get("id").asText()).isEqualTo(f.s().userId());
+        assertThat(t.get("source").asString()).isEqualTo("TELEGRAM");
+        assertThat(t.get("description").asString()).isEqualTo("Almoço no centro");
+        assertThat(t.get("category").get("name").asString()).isEqualTo("Alimentação");
+        assertThat(t.get("date").asString()).isEqualTo("2026-11-10");
+        assertThat(t.get("createdBy").get("id").asString()).isEqualTo(f.s().userId());
 
         JsonNode after = body(call(get("/api/me/telegram"), f.s().token(), null));
-        assertThat(after.get("link").get("account").get("name").asText()).isEqualTo("Nubank");
+        assertThat(after.get("link").get("account").get("name").asString()).isEqualTo("Nubank");
     }
 
     @Test
@@ -148,10 +148,10 @@ class TelegramIntegrationTest extends IntegrationTest {
         Fx victim = fixture();
         Fx eve = fixture();
         assertThat(codeResponse(eve.s(), victim.s().workspaceId(), victim.account()).getStatus()).isEqualTo(404);
-        assertThat(body(codeResponse(eve.s(), eve.s().workspaceId(), victim.account())).get("message").asText()).isEqualTo("Account not found");
+        assertThat(body(codeResponse(eve.s(), eve.s().workspaceId(), victim.account())).get("message").asString()).isEqualTo("Account not found");
         call(put(ws(eve.s(), "/accounts/" + eve.account())), eve.s().token(),
                 Map.of("name", "Nubank", "type", "CHECKING", "initialBalance", "1000.00", "archived", true));
-        assertThat(body(codeResponse(eve.s(), eve.s().workspaceId(), eve.account())).get("message").asText()).isEqualTo("Account is archived");
+        assertThat(body(codeResponse(eve.s(), eve.s().workspaceId(), eve.account())).get("message").asString()).isEqualTo("Account is archived");
         assertThat(call(post("/api/me/telegram/code"), null, Map.of("workspaceId", victim.s().workspaceId(), "accountId", victim.account()))
                 .getStatus()).isEqualTo(401);
         assertThat(call(get("/api/me/telegram"), null, null).getStatus()).isEqualTo(401);
@@ -172,9 +172,9 @@ class TelegramIntegrationTest extends IntegrationTest {
     void leavingWorkspaceRevokes() throws Exception {
         Fx owner = fixture();
         Session bia = register("Bia", email());
-        String invite = body(call(post(ws(owner.s(), "/invites")), owner.s().token(), null)).get("code").asText();
+        String invite = body(call(post(ws(owner.s(), "/invites")), owner.s().token(), null)).get("code").asString();
         assertThat(call(post("/api/invites/" + invite + "/accept"), bia.token(), null).getStatus()).isEqualTo(200);
-        String code = body(codeResponse(bia, owner.s().workspaceId(), owner.account())).get("code").asText();
+        String code = body(codeResponse(bia, owner.s().workspaceId(), owner.account())).get("code").asString();
         long chat = owner.chat() + 1;
         assertThat(commands.handle(chat, true, "/start " + code)).contains(LINKED);
         assertThat(commands.handle(chat, true, "5 café")).contains("Despesa");
@@ -198,7 +198,7 @@ class TelegramIntegrationTest extends IntegrationTest {
         String html = say(f, "<b>pizza</b> & <a href=x>y</a> 10");
         assertThat(html).contains("&lt;b&gt;pizza&lt;/b&gt; &amp; &lt;a href=x&gt;y&lt;/a&gt;").doesNotContain("<a href");
         assertThat(balance(f)).isEqualTo("3225.34");                    // 1000 − 23,10 − 1234,56 + 3500 − 7 − 10
-        assertThat(transactions(f).findValuesAsText("description")).contains("<b>pizza</b> & <a href=x>y</a>");
+        assertThat(transactions(f).findValuesAsString("description")).contains("<b>pizza</b> & <a href=x>y</a>");
     }
 
     @Test
@@ -220,7 +220,7 @@ class TelegramIntegrationTest extends IntegrationTest {
     void descriptionAndArchivedAccount() throws Exception {
         Fx f = linked();
         say(f, "5 a\u0007b\u001bc " + "x".repeat(200));
-        String d = transactions(f).get(0).get("description").asText();
+        String d = transactions(f).get(0).get("description").asString();
         assertThat(d).startsWith("abc xxx").hasSize(140);
         call(put(ws(f.s(), "/accounts/" + f.account())), f.s().token(),
                 Map.of("name", "Nubank", "type", "CHECKING", "initialBalance", "1000.00", "archived", true));
@@ -266,7 +266,7 @@ class TelegramIntegrationTest extends IntegrationTest {
         clock.advance(Duration.ofHours(24).plusSeconds(1));
         assertThat(say(f, "/desfazer")).startsWith("Nada para desfazer");
         clock.advance(Duration.ofHours(-24));                            // o token do teste vale 12 h
-        assertThat(transactions(f).findValuesAsText("description")).containsExactlyInAnyOrder("Manual", "velho");
+        assertThat(transactions(f).findValuesAsString("description")).containsExactlyInAnyOrder("Manual", "velho");
         assertThat(commands.handle(other.chat(), true, "/desfazer")).contains("segredo");
     }
 
@@ -346,9 +346,9 @@ class TelegramIntegrationTest extends IntegrationTest {
 
         Fx owner = fixture();
         Session bia = register("Bia", email());
-        String invite = body(call(post(ws(owner.s(), "/invites")), owner.s().token(), null)).get("code").asText();
+        String invite = body(call(post(ws(owner.s(), "/invites")), owner.s().token(), null)).get("code").asString();
         call(post("/api/invites/" + invite + "/accept"), bia.token(), null);
-        String biaCode = body(codeResponse(bia, owner.s().workspaceId(), owner.account())).get("code").asText();
+        String biaCode = body(codeResponse(bia, owner.s().workspaceId(), owner.account())).get("code").asString();
         call(post("/api/workspaces/" + owner.s().workspaceId() + "/leave"), bia.token(), null);
         assertThat(commands.handle(owner.chat() + 3, true, "/start " + biaCode)).startsWith(INVALID);
         assertThat(links.findByChatId(owner.chat() + 3)).isEmpty();
@@ -364,8 +364,8 @@ class TelegramIntegrationTest extends IntegrationTest {
                 "dayOfMonth", 14, "categoryId", f.cats().get("Moradia/EXPENSE"), "accountId", f.account(), "startMonth", "2026-11"));
         assertThat(say(f, "/contas")).contains("Seguro — R$ 80,00 (vence 14/11)");
         for (JsonNode a : body(call(get(ws(f.s(), "/accounts")), f.s().token(), null))) {
-            call(put(ws(f.s(), "/accounts/" + a.get("id").asText())), f.s().token(), Map.of("name", a.get("name").asText(),
-                    "type", a.get("type").asText(), "initialBalance", a.get("initialBalance").asText(), "archived", true));
+            call(put(ws(f.s(), "/accounts/" + a.get("id").asString())), f.s().token(), Map.of("name", a.get("name").asString(),
+                    "type", a.get("type").asString(), "initialBalance", a.get("initialBalance").asString(), "archived", true));
         }
         assertThat(say(f, "/saldo")).isEqualTo("Nenhuma conta ativa.");
     }

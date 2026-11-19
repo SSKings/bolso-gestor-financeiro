@@ -1,6 +1,6 @@
 package com.sskings.bolso.importing;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.sskings.bolso.support.IntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,9 +24,9 @@ class ImportIntegrationTest extends IntegrationTest {
     private Fx fixture() throws Exception {
         Session s = register();
         String account = body(call(post(ws(s, "/accounts")), s.token(),
-                Map.of("name", "Itaú", "type", "CHECKING", "initialBalance", "100.00"))).get("id").asText();
+                Map.of("name", "Itaú", "type", "CHECKING", "initialBalance", "100.00"))).get("id").asString();
         Map<String, String> cats = new HashMap<>();
-        for (JsonNode c : body(call(get(ws(s, "/categories")), s.token(), null))) cats.put(c.get("name").asText() + "/" + c.get("kind").asText(), c.get("id").asText());
+        for (JsonNode c : body(call(get(ws(s, "/categories")), s.token(), null))) cats.put(c.get("name").asString() + "/" + c.get("kind").asString(), c.get("id").asString());
         return new Fx(s, account, cats);
     }
 
@@ -52,9 +52,9 @@ class ImportIntegrationTest extends IntegrationTest {
         List<Map<String, Object>> entries = new ArrayList<>();
         for (JsonNode e : preview.get("entries")) {
             if (e.get("duplicate").asBoolean()) continue;
-            entries.add(Map.of("externalId", e.get("externalId").asText(), "date", e.get("date").asText(), "amount", e.get("amount").asText(),
-                    "type", e.get("type").asText(), "description", e.get("description").asText(),
-                    "categoryId", e.get("suggestedCategory").get("id").asText()));
+            entries.add(Map.of("externalId", e.get("externalId").asString(), "date", e.get("date").asString(), "amount", e.get("amount").asString(),
+                    "type", e.get("type").asString(), "description", e.get("description").asString(),
+                    "categoryId", e.get("suggestedCategory").get("id").asString()));
         }
         return Map.of("accountId", f.account(), "entries", entries);
     }
@@ -75,11 +75,11 @@ class ImportIntegrationTest extends IntegrationTest {
         JsonNode p = preview(f, "extrato.ofx");
         assertThat(p.get("entries")).hasSize(3);
         JsonNode uber = p.get("entries").get(2);
-        assertThat(uber.get("type").asText()).isEqualTo("EXPENSE");
+        assertThat(uber.get("type").asString()).isEqualTo("EXPENSE");
         assertThat(uber.get("amount").decimalValue()).isEqualByComparingTo("23.10");
-        assertThat(uber.get("suggestedCategory").get("name").asText()).isEqualTo("Transporte");
-        assertThat(p.get("entries").get(1).get("type").asText()).isEqualTo("INCOME");
-        assertThat(p.get("entries").get(1).get("suggestedCategory").get("id").asText()).as("sem regra: Outros (receita)")
+        assertThat(uber.get("suggestedCategory").get("name").asString()).isEqualTo("Transporte");
+        assertThat(p.get("entries").get(1).get("type").asString()).isEqualTo("INCOME");
+        assertThat(p.get("entries").get(1).get("suggestedCategory").get("id").asString()).as("sem regra: Outros (receita)")
                 .isEqualTo(f.cats().get("Outros/INCOME"));
         assertThat(p.get("entries").get(0).get("duplicate").asBoolean()).isFalse();
 
@@ -89,7 +89,7 @@ class ImportIntegrationTest extends IntegrationTest {
         assertThat(balance(f)).isEqualTo("3541.00");                     // 100 − 35,90 + 3500 − 23,10
 
         JsonNode again = preview(f, "extrato.ofx");
-        assertThat(again.get("entries").findValuesAsText("duplicate")).containsOnly("true");
+        assertThat(again.get("entries").findValuesAsString("duplicate")).containsOnly("true");
         Map<String, Object> forced = new HashMap<>(commitBody(f, p));                 // mandando de novo, de propósito
         JsonNode second = body(commit(f, forced));
         assertThat(second.get("imported").asInt()).isZero();
@@ -97,7 +97,7 @@ class ImportIntegrationTest extends IntegrationTest {
         assertThat(balance(f)).isEqualTo("3541.00");
 
         JsonNode list = body(call(get(ws(f.s(), "/transactions?month=2026-11")), f.s().token(), null));
-        assertThat(list.get("items").get(0).get("source").asText()).isEqualTo("IMPORT");
+        assertThat(list.get("items").get(0).get("source").asString()).isEqualTo("IMPORT");
     }
 
     @Test
@@ -117,7 +117,7 @@ class ImportIntegrationTest extends IntegrationTest {
         Fx f = fixture();
         MockHttpServletResponse bad = preview(f.s(), ws(f.s(), ""), f.account(), "foto.jpg", "ÿØ não é extrato".getBytes());
         assertThat(bad.getStatus()).isEqualTo(400);
-        assertThat(body(bad).get("message").asText()).isEqualTo("Unsupported file format");
+        assertThat(body(bad).get("message").asString()).isEqualTo("Unsupported file format");
         byte[] big = new byte[1_100_000];
         java.util.Arrays.fill(big, (byte) 'a');
         assertThat(preview(f.s(), ws(f.s(), ""), f.account(), "grande.csv", big).getStatus()).isEqualTo(413);
@@ -153,12 +153,12 @@ class ImportIntegrationTest extends IntegrationTest {
         Fx victim = fixture();
         Fx eve = fixture();
         MockHttpServletResponse foreignAccount = preview(eve.s(), ws(eve.s(), ""), victim.account(), "extrato.ofx", sample("extrato.ofx"));
-        assertThat(body(foreignAccount).get("message").asText()).isEqualTo("Account not found");
+        assertThat(body(foreignAccount).get("message").asString()).isEqualTo("Account not found");
         assertThat(preview(eve.s(), ws(victim.s(), ""), victim.account(), "extrato.ofx", sample("extrato.ofx")).getStatus()).isEqualTo(404);
         MockHttpServletResponse foreignCommit = call(post(ws(eve.s(), "/imports/commit")), eve.s().token(), Map.of("accountId", eve.account(),
                 "entries", List.of(Map.of("externalId", "e1", "date", "2026-11-03", "amount", "1.00", "type", "EXPENSE",
                         "description", "X", "categoryId", victim.cats().get("Alimentação/EXPENSE")))));
-        assertThat(body(foreignCommit).get("message").asText()).isEqualTo("Category not found");
+        assertThat(body(foreignCommit).get("message").asString()).isEqualTo("Category not found");
         assertThat(call(post(ws(victim.s(), "/imports/commit")), eve.s().token(), Map.of("accountId", victim.account(),
                 "entries", List.of(Map.of("externalId", "e2", "date", "2026-11-03", "amount", "1.00", "type", "EXPENSE",
                         "description", "X", "categoryId", victim.cats().get("Alimentação/EXPENSE"))))).getStatus()).isEqualTo(404);
@@ -172,7 +172,7 @@ class ImportIntegrationTest extends IntegrationTest {
         call(put(ws(f.s(), "/accounts/" + f.account())), f.s().token(),
                 Map.of("name", "Itaú", "type", "CHECKING", "initialBalance", "100.00", "archived", true));
         MockHttpServletResponse r = preview(f.s(), ws(f.s(), ""), f.account(), "extrato.ofx", sample("extrato.ofx"));
-        assertThat(body(r).get("message").asText()).isEqualTo("Account is archived");
+        assertThat(body(r).get("message").asString()).isEqualTo("Account is archived");
     }
 
     @Test
@@ -181,17 +181,17 @@ class ImportIntegrationTest extends IntegrationTest {
         Fx f = fixture();
         String salaryRuleCat = f.cats().get("Transporte/EXPENSE");
         call(post(ws(f.s(), "/rules")), f.s().token(), Map.of("pattern", "salario", "categoryId", salaryRuleCat));
-        String pets = body(call(post(ws(f.s(), "/categories")), f.s().token(), Map.of("name", "Pets", "kind", "EXPENSE", "color", "#000000"))).get("id").asText();
+        String pets = body(call(post(ws(f.s(), "/categories")), f.s().token(), Map.of("name", "Pets", "kind", "EXPENSE", "color", "#000000"))).get("id").asString();
         call(post(ws(f.s(), "/rules")), f.s().token(), Map.of("pattern", "padaria", "categoryId", pets));
         call(put(ws(f.s(), "/categories/" + pets)), f.s().token(), Map.of("name", "Pets", "color", "#000000", "archived", true));
         JsonNode p = preview(f, "extrato.ofx");
-        assertThat(p.get("entries").get(1).get("suggestedCategory").get("id").asText()).as("receita: regra de despesa ignorada")
+        assertThat(p.get("entries").get(1).get("suggestedCategory").get("id").asString()).as("receita: regra de despesa ignorada")
                 .isEqualTo(f.cats().get("Outros/INCOME"));
-        assertThat(p.get("entries").get(0).get("suggestedCategory").get("id").asText()).as("categoria arquivada não é sugerida")
+        assertThat(p.get("entries").get(0).get("suggestedCategory").get("id").asString()).as("categoria arquivada não é sugerida")
                 .isEqualTo(f.cats().get("Outros/EXPENSE"));
         MockHttpServletResponse r = commit(f, Map.of("accountId", f.account(), "entries", List.of(Map.of("externalId", "a1",
                 "date", "2026-11-03", "amount", "1.00", "type", "EXPENSE", "description", "X", "categoryId", pets))));
-        assertThat(body(r).get("message").asText()).isEqualTo("Category is archived");
+        assertThat(body(r).get("message").asString()).isEqualTo("Category is archived");
     }
 
     @Test
@@ -201,6 +201,6 @@ class ImportIntegrationTest extends IntegrationTest {
         call(delete(ws(f.s(), "/categories/" + f.cats().get("Outros/INCOME"))), f.s().token(), null);
         assertThat(preview(f, "extrato.ofx").get("entries").get(1).get("suggestedCategory").isNull()).isTrue();
         MockHttpServletResponse empty = preview(f.s(), ws(f.s(), ""), f.account(), "vazio.csv", new byte[0]);
-        assertThat(body(empty).get("message").asText()).isEqualTo("Choose a file to import");
+        assertThat(body(empty).get("message").asString()).isEqualTo("Choose a file to import");
     }
 }

@@ -51,8 +51,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ErrorResponse> unreadable(HttpMessageNotReadableException ex) {
-        if (ex.getCause() instanceof RequestSizeLimitFilter.PayloadTooLargeException) {
-            return error(HttpStatus.PAYLOAD_TOO_LARGE, "Request body too large");
+        // o limite estoura no meio da leitura do JSON; o Jackson 3 embrulha a exceção em mais de uma camada
+        for (Throwable c = ex.getCause(); c != null; c = c.getCause()) {
+            if (c instanceof RequestSizeLimitFilter.PayloadTooLargeException) {
+                return error(HttpStatus.CONTENT_TOO_LARGE, "Request body too large");
+            }
         }
         return error(HttpStatus.BAD_REQUEST, "Malformed JSON request");
     }
@@ -70,7 +73,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
     ResponseEntity<ErrorResponse> uploadTooLarge(Exception ex) {
-        return error(HttpStatus.PAYLOAD_TOO_LARGE, "File too large (maximum 1 MB)");
+        return error(HttpStatus.CONTENT_TOO_LARGE, "File too large (maximum 1 MB)");
     }
 
     @ExceptionHandler({org.springframework.web.multipart.support.MissingServletRequestPartException.class,

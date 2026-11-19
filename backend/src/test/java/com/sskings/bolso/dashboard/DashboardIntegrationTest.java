@@ -1,6 +1,6 @@
 package com.sskings.bolso.dashboard;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.sskings.bolso.support.IntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,16 +16,16 @@ class DashboardIntegrationTest extends IntegrationTest {
     @DisplayName("Painel do mês: entradas, saídas, resultado, gastos por categoria (maior primeiro) e saldos")
     void monthSummary() throws Exception {
         Session s = register();
-        String wallet = body(call(get(ws(s, "/accounts")), s.token(), null)).get(0).get("id").asText();
+        String wallet = body(call(get(ws(s, "/accounts")), s.token(), null)).get(0).get("id").asString();
         String checking = body(call(post(ws(s, "/accounts")), s.token(),
-                Map.of("name", "Corrente", "type", "CHECKING", "initialBalance", "500.00"))).get("id").asText();
+                Map.of("name", "Corrente", "type", "CHECKING", "initialBalance", "500.00"))).get("id").asString();
         JsonNode cats = body(call(get(ws(s, "/categories")), s.token(), null));
         String food = null, market = null, salary = null;
         for (JsonNode c : cats) {
-            switch (c.get("name").asText()) {
-                case "Alimentação" -> food = c.get("id").asText();
-                case "Mercado" -> market = c.get("id").asText();
-                case "Salário" -> salary = c.get("id").asText();
+            switch (c.get("name").asString()) {
+                case "Alimentação" -> food = c.get("id").asString();
+                case "Mercado" -> market = c.get("id").asString();
+                case "Salário" -> salary = c.get("id").asString();
                 default -> { }
             }
         }
@@ -45,13 +45,13 @@ class DashboardIntegrationTest extends IntegrationTest {
         }
 
         JsonNode d = body(call(get(ws(s, "/dashboard?month=2026-11")), s.token(), null));
-        assertThat(d.get("month").asText()).isEqualTo("2026-11");
+        assertThat(d.get("month").asString()).isEqualTo("2026-11");
         assertThat(d.get("income").decimalValue()).isEqualByComparingTo("3000.00");
         assertThat(d.get("expense").decimalValue()).isEqualByComparingTo("350.00");
         assertThat(d.get("net").decimalValue()).isEqualByComparingTo("2650.00");
-        assertThat(d.get("expensesByCategory").findValuesAsText("name")).containsExactly("Mercado", "Alimentação");
+        assertThat(d.get("expensesByCategory").findValuesAsString("name")).containsExactly("Mercado", "Alimentação");
         assertThat(d.get("expensesByCategory").get(0).get("amount").decimalValue()).isEqualByComparingTo("250.00");
-        assertThat(d.get("expensesByCategory").get(0).get("color").asText()).startsWith("#");
+        assertThat(d.get("expensesByCategory").get(0).get("color").asString()).startsWith("#");
         assertThat(d.get("totalBalance").decimalValue()).isEqualByComparingTo("2151.00");   // 500 + 3000 - 350 - 999 (out.); a transferência se anula
         assertThat(d.get("accounts")).hasSize(2);
 

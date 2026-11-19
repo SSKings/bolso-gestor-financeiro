@@ -1,14 +1,14 @@
 package com.sskings.bolso.contract;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.node.ObjectNode;
 import com.sskings.bolso.support.TestcontainersConfiguration;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
@@ -43,7 +43,8 @@ class ApiContractTest {
     @DisplayName("A API gerada pelo código é a mesma de docs/openapi.json (contrato com o front)")
     void specMatchesCommittedContract() throws Exception {
         String raw = mvc.perform(get("/v3/api-docs")).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        ObjectMapper json = new ObjectMapper().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS).enable(SerializationFeature.INDENT_OUTPUT);
+        ObjectMapper json = tools.jackson.databind.json.JsonMapper.builder()
+                .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS).enable(SerializationFeature.INDENT_OUTPUT).build();
         JsonNode spec = json.readTree(raw);
         ((ObjectNode) spec).remove("servers");                               // porta aleatória do teste
         String canonical = json.writeValueAsString(json.treeToValue(spec, Object.class)) + "\n";

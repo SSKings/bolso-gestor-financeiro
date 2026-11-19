@@ -84,7 +84,7 @@ public class ImportService {
         access.member(ws);
         Account account = transactionService.usableAccount(ws, accountId);
         if (file == null || file.isEmpty()) throw ApiException.badRequest("Choose a file to import");
-        if (file.getSize() > MAX_FILE_BYTES) throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, "File too large (maximum 1 MB)");
+        if (file.getSize() > MAX_FILE_BYTES) throw new ApiException(HttpStatus.CONTENT_TOO_LARGE, "File too large (maximum 1 MB)");
         List<ParsedEntry> parsed;
         try {
             parsed = StatementParser.parse(file.getBytes());

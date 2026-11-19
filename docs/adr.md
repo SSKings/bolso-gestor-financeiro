@@ -137,3 +137,15 @@ Proteção de branch exigindo os jobs Backend, Frontend, Migrações, Produção
 valendo para administradores. O job de produção sobe a pilha real (TLS, papéis do banco, nginx) — a versão anterior
 primeiro, com dados, e a nova por cima —, então Dockerfile, nginx, permissões e migrações são testados antes do merge,
 não no deploy.
+
+## ADR-016 — Spring Boot 4.1 com Jackson 3, sem os atalhos de compatibilidade
+
+- **Por quê**: a linha 3.5 / Spring 6.2 saiu do suporte gratuito; falhas novas não seriam mais corrigidas.
+- **Starters modulares** (`spring-boot-starter-webmvc`, `-flyway`, `-restclient` e um starter de teste por tecnologia)
+  em vez do `spring-boot-starter-classic`: só entra no classpath o que o app usa.
+- **Jackson 3 de verdade** (`tools.jackson`), sem o módulo `spring-boot-jackson2` (já nasce depreciado). Atenção ao
+  migrar código que usa `JsonNode`: o Jackson 2 continua no classpath por causa do swagger-core, então o código antigo
+  **compila**, mas o `RestClient` passa a converter com o Jackson 3 — o bot do Telegram quebraria só em execução.
+- Nenhum aviso de depreciação no build (Jackson 3, Spring 7 e Testcontainers 2 já com as APIs novas).
+- A rede de proteção (contrato, mutação, E2E de produção com upgrade, scan) foi o que permitiu migrar com segurança: o
+  contrato confirmou que a API ficou idêntica, e o E2E sobe a versão nova sobre um banco da versão anterior.

@@ -1,6 +1,6 @@
 package com.sskings.bolso.telegram;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.SmartLifecycle;
 
@@ -44,6 +44,11 @@ public class TelegramPoller implements SmartLifecycle {
     @Override
     public boolean isRunning() {
         return running;
+    }
+
+    /** A thread deste poller (testes: o contexto Spring pode ter outro poller com o mesmo nome de thread). */
+    synchronized Thread thread() {
+        return thread;
     }
 
     private void loop() {

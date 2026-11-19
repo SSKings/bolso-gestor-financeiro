@@ -1,6 +1,10 @@
 # Bolso — configuração comum. Perfil padrão: dev (application-dev.yml). Produção: SPRING_PROFILES_ACTIVE=prod,
 # e o ProductionConfigValidator recusa subir com segredo ausente/fraco ou CORS aberto.
 spring:
+  web:
+    error:                         # Boot 4: era server.error.* (as chaves antigas são ignoradas)
+      include-message: never
+      include-stacktrace: never
   application:
     name: bolso
   profiles:
@@ -30,9 +34,6 @@ spring:
 
 server:
   port: ${PORT:8080}
-  error:
-    include-message: never
-    include-stacktrace: never
   servlet:
     session:
       tracking-modes: []         # API sem sessão: nada de ;jsessionid na URL
@@ -45,6 +46,8 @@ management:
   endpoint:
     health:
       show-details: never
+      probes:
+        enabled: false             # Boot 4 liga as sondas do Kubernetes e as lista no /health; aqui não há Kubernetes
 
 springdoc:
   api-docs:

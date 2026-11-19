@@ -1,9 +1,9 @@
 package com.sskings.bolso.support;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import com.sun.net.httpserver.HttpServer;
 
 import java.io.IOException;
@@ -104,7 +104,7 @@ public final class FakeTelegram {
             for (JsonNode s : sent) {
                 if (s.path("chat_id").asLong() == chatId) {
                     sent.remove(s);
-                    return s.path("text").asText();
+                    return s.path("text").asString();
                 }
             }
             Thread.sleep(20);

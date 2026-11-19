@@ -57,15 +57,16 @@ class TransactionIntegrationTest extends IntegrationTest {
         return body(call(get(ws(f.s(), "/accounts/" + accountId)), f.s().token(), null)).get("balance").decimalValue();
     }
 
-    private final String today = LocalDate.now().toString();
+    /** "Hoje" no fuso do app (o mesmo do saldo), não no da máquina: em UTC, depois das 21h de Brasília já é amanhã. */
+    @org.springframework.beans.factory.annotation.Autowired com.sskings.bolso.common.Today appToday;
 
     @Test
     @DisplayName("Despesa, receita e transferência mudam os saldos certos; o saldo é sempre o calculado")
     void balances() throws Exception {
         Fixture f = fixture();
-        assertThat(create(f, tx("EXPENSE", "120.40", today, "Mercado", f.checking(), f.expenseCat(), null)).getStatus()).isEqualTo(201);
-        assertThat(create(f, tx("INCOME", "3500.00", today, "Salário", f.checking(), f.incomeCat(), null)).getStatus()).isEqualTo(201);
-        assertThat(create(f, tx("TRANSFER", "200.00", today, "Saque", f.checking(), null, f.wallet())).getStatus()).isEqualTo(201);
+        assertThat(create(f, tx("EXPENSE", "120.40", appToday.date().toString(), "Mercado", f.checking(), f.expenseCat(), null)).getStatus()).isEqualTo(201);
+        assertThat(create(f, tx("INCOME", "3500.00", appToday.date().toString(), "Salário", f.checking(), f.incomeCat(), null)).getStatus()).isEqualTo(201);
+        assertThat(create(f, tx("TRANSFER", "200.00", appToday.date().toString(), "Saque", f.checking(), null, f.wallet())).getStatus()).isEqualTo(201);
         assertThat(balance(f, f.checking())).isEqualByComparingTo("4179.60");   // 1000 - 120.40 + 3500 - 200
         assertThat(balance(f, f.wallet())).isEqualByComparingTo("200.00");
     }
@@ -74,7 +75,7 @@ class TransactionIntegrationTest extends IntegrationTest {
     @DisplayName("Lançamento com data futura não entra no saldo de hoje (é previsão)")
     void futureNotInBalance() throws Exception {
         Fixture f = fixture();
-        create(f, tx("EXPENSE", "50.00", LocalDate.now().plusDays(10).toString(), "Conta futura", f.checking(), f.expenseCat(), null));
+        create(f, tx("EXPENSE", "50.00", appToday.date().plusDays(10).toString(), "Conta futura", f.checking(), f.expenseCat(), null));
         assertThat(balance(f, f.checking())).isEqualByComparingTo("1000.00");
     }
 
@@ -97,28 +98,28 @@ class TransactionIntegrationTest extends IntegrationTest {
     void validation() throws Exception {
         Fixture f = fixture();
         List<Map<String, Object>> invalid = List.of(
-                tx("EXPENSE", "0", today, "Zero", f.checking(), f.expenseCat(), null),
-                tx("EXPENSE", "-5.00", today, "Negativo", f.checking(), f.expenseCat(), null),
-                tx("EXPENSE", "1.999", today, "3 casas", f.checking(), f.expenseCat(), null),
-                tx("EXPENSE", "1000000000.00", today, "Grande demais", f.checking(), f.expenseCat(), null),
+                tx("EXPENSE", "0", appToday.date().toString(), "Zero", f.checking(), f.expenseCat(), null),
+                tx("EXPENSE", "-5.00", appToday.date().toString(), "Negativo", f.checking(), f.expenseCat(), null),
+                tx("EXPENSE", "1.999", appToday.date().toString(), "3 casas", f.checking(), f.expenseCat(), null),
+                tx("EXPENSE", "1000000000.00", appToday.date().toString(), "Grande demais", f.checking(), f.expenseCat(), null),
                 tx("EXPENSE", "10.00", "2026-13-40", "Data inválida", f.checking(), f.expenseCat(), null),
                 tx("EXPENSE", "10.00", "1999-12-31", "Antiga demais", f.checking(), f.expenseCat(), null),
-                tx("EXPENSE", "10.00", LocalDate.now().plusYears(2).toString(), "Futura demais", f.checking(), f.expenseCat(), null),
-                tx("EXPENSE", "10.00", today, "", f.checking(), f.expenseCat(), null),
-                tx("EXPENSE", "10.00", today, "x".repeat(141), f.checking(), f.expenseCat(), null),
-                tx("EXPENSE", "10.00", today, "Linha\nfalsa", f.checking(), f.expenseCat(), null),
-                tx("PIX", "10.00", today, "Tipo inválido", f.checking(), f.expenseCat(), null),
-                tx("EXPENSE", "10.00", today, "Sem categoria", f.checking(), null, null),
-                tx("EXPENSE", "10.00", today, "Categoria de receita", f.checking(), f.incomeCat(), null),
-                tx("INCOME", "10.00", today, "Categoria de despesa", f.checking(), f.expenseCat(), null),
-                tx("EXPENSE", "10.00", today, "Despesa com destino", f.checking(), f.expenseCat(), f.wallet()),
-                tx("TRANSFER", "10.00", today, "Sem destino", f.checking(), null, null),
-                tx("TRANSFER", "10.00", today, "Para a mesma conta", f.checking(), null, f.checking()),
-                tx("TRANSFER", "10.00", today, "Com categoria", f.checking(), f.expenseCat(), f.wallet()));
+                tx("EXPENSE", "10.00", appToday.date().plusYears(2).toString(), "Futura demais", f.checking(), f.expenseCat(), null),
+                tx("EXPENSE", "10.00", appToday.date().toString(), "", f.checking(), f.expenseCat(), null),
+                tx("EXPENSE", "10.00", appToday.date().toString(), "x".repeat(141), f.checking(), f.expenseCat(), null),
+                tx("EXPENSE", "10.00", appToday.date().toString(), "Linha\nfalsa", f.checking(), f.expenseCat(), null),
+                tx("PIX", "10.00", appToday.date().toString(), "Tipo inválido", f.checking(), f.expenseCat(), null),
+                tx("EXPENSE", "10.00", appToday.date().toString(), "Sem categoria", f.checking(), null, null),
+                tx("EXPENSE", "10.00", appToday.date().toString(), "Categoria de receita", f.checking(), f.incomeCat(), null),
+                tx("INCOME", "10.00", appToday.date().toString(), "Categoria de despesa", f.checking(), f.expenseCat(), null),
+                tx("EXPENSE", "10.00", appToday.date().toString(), "Despesa com destino", f.checking(), f.expenseCat(), f.wallet()),
+                tx("TRANSFER", "10.00", appToday.date().toString(), "Sem destino", f.checking(), null, null),
+                tx("TRANSFER", "10.00", appToday.date().toString(), "Para a mesma conta", f.checking(), null, f.checking()),
+                tx("TRANSFER", "10.00", appToday.date().toString(), "Com categoria", f.checking(), f.expenseCat(), f.wallet()));
         for (Map<String, Object> body : invalid) {
             assertThat(create(f, body).getStatus()).as(String.valueOf(body.get("description"))).isEqualTo(400);
         }
-        Map<String, Object> extra = tx("EXPENSE", "10.00", today, "Com createdBy", f.checking(), f.expenseCat(), null);
+        Map<String, Object> extra = tx("EXPENSE", "10.00", appToday.date().toString(), "Com createdBy", f.checking(), f.expenseCat(), null);
         extra.put("createdBy", f.s().userId());
         assertThat(create(f, extra).getStatus()).isEqualTo(400);
         assertThat(balance(f, f.checking())).as("nada foi gravado").isEqualByComparingTo("1000.00");
@@ -130,13 +131,13 @@ class TransactionIntegrationTest extends IntegrationTest {
         Fixture f = fixture();
         call(put(ws(f.s(), "/accounts/" + f.wallet())), f.s().token(),
                 Map.of("name", "Carteira", "type", "CASH", "initialBalance", "0", "archived", true));
-        MockHttpServletResponse r = create(f, tx("EXPENSE", "10.00", today, "Café", f.wallet(), f.expenseCat(), null));
+        MockHttpServletResponse r = create(f, tx("EXPENSE", "10.00", appToday.date().toString(), "Café", f.wallet(), f.expenseCat(), null));
         assertThat(r.getStatus()).isEqualTo(400);
         assertThat(body(r).get("message").asString()).isEqualTo("Account is archived");
-        assertThat(create(f, tx("TRANSFER", "10.00", today, "Para arquivada", f.checking(), null, f.wallet())).getStatus()).isEqualTo(400);
+        assertThat(create(f, tx("TRANSFER", "10.00", appToday.date().toString(), "Para arquivada", f.checking(), null, f.wallet())).getStatus()).isEqualTo(400);
 
         call(put(ws(f.s(), "/categories/" + f.expenseCat())), f.s().token(), Map.of("name", "Velha", "color", "#000000", "archived", true));
-        MockHttpServletResponse c = create(f, tx("EXPENSE", "10.00", today, "Café", f.checking(), f.expenseCat(), null));
+        MockHttpServletResponse c = create(f, tx("EXPENSE", "10.00", appToday.date().toString(), "Café", f.checking(), f.expenseCat(), null));
         assertThat(body(c).get("message").asString()).isEqualTo("Category is archived");
     }
 
@@ -145,12 +146,12 @@ class TransactionIntegrationTest extends IntegrationTest {
     void crossWorkspaceReferences() throws Exception {
         Fixture ana = fixture();
         Fixture eve = fixture();
-        MockHttpServletResponse r1 = create(eve, tx("EXPENSE", "10.00", today, "Na conta da Ana", ana.checking(), eve.expenseCat(), null));
+        MockHttpServletResponse r1 = create(eve, tx("EXPENSE", "10.00", appToday.date().toString(), "Na conta da Ana", ana.checking(), eve.expenseCat(), null));
         assertThat(r1.getStatus()).isEqualTo(400);
         assertThat(body(r1).get("message").asString()).isEqualTo("Account not found");
-        MockHttpServletResponse r2 = create(eve, tx("EXPENSE", "10.00", today, "Com categoria da Ana", eve.checking(), ana.expenseCat(), null));
+        MockHttpServletResponse r2 = create(eve, tx("EXPENSE", "10.00", appToday.date().toString(), "Com categoria da Ana", eve.checking(), ana.expenseCat(), null));
         assertThat(body(r2).get("message").asString()).isEqualTo("Category not found");
-        MockHttpServletResponse r3 = create(eve, tx("TRANSFER", "10.00", today, "Para a Ana", eve.checking(), null, ana.checking()));
+        MockHttpServletResponse r3 = create(eve, tx("TRANSFER", "10.00", appToday.date().toString(), "Para a Ana", eve.checking(), null, ana.checking()));
         assertThat(body(r3).get("message").asString()).isEqualTo("Account not found");
         assertThat(balance(ana, ana.checking())).isEqualByComparingTo("1000.00");
         assertThat(balance(eve, eve.checking())).isEqualByComparingTo("1000.00");
@@ -190,9 +191,9 @@ class TransactionIntegrationTest extends IntegrationTest {
     @DisplayName("Editar e excluir lançamento; o saldo acompanha")
     void updateAndDelete() throws Exception {
         Fixture f = fixture();
-        String id = body(create(f, tx("EXPENSE", "100.00", today, "Conta de luz", f.checking(), f.expenseCat(), null))).get("id").asString();
+        String id = body(create(f, tx("EXPENSE", "100.00", appToday.date().toString(), "Conta de luz", f.checking(), f.expenseCat(), null))).get("id").asString();
         MockHttpServletResponse r = call(put(ws(f.s(), "/transactions/" + id)), f.s().token(),
-                tx("EXPENSE", "150.00", today, "Conta de luz (corrigida)", f.wallet(), f.expenseCat(), null));
+                tx("EXPENSE", "150.00", appToday.date().toString(), "Conta de luz (corrigida)", f.wallet(), f.expenseCat(), null));
         assertThat(r.getStatus()).isEqualTo(200);
         assertThat(balance(f, f.checking())).isEqualByComparingTo("1000.00");
         assertThat(balance(f, f.wallet())).isEqualByComparingTo("-150.00");
@@ -210,7 +211,7 @@ class TransactionIntegrationTest extends IntegrationTest {
         try {
             List<Future<Integer>> results = new java.util.ArrayList<>();
             for (int i = 0; i < 20; i++) {
-                results.add(pool.submit(() -> create(f, tx("EXPENSE", "1.25", today, "Café", f.checking(), f.expenseCat(), null)).getStatus()));
+                results.add(pool.submit(() -> create(f, tx("EXPENSE", "1.25", appToday.date().toString(), "Café", f.checking(), f.expenseCat(), null)).getStatus()));
             }
             for (Future<Integer> r : results) assertThat(r.get()).isEqualTo(201);
         } finally {
@@ -225,26 +226,26 @@ class TransactionIntegrationTest extends IntegrationTest {
         Fixture f = fixture();
         String savings = body(call(post(ws(f.s(), "/accounts")), f.s().token(),
                 Map.of("name", "Poupança", "type", "SAVINGS", "initialBalance", "0"))).get("id").asString();
-        String expense = body(create(f, tx("EXPENSE", "10.00", today, "Antigo", f.wallet(), f.expenseCat(), null))).get("id").asString();
-        String transfer = body(create(f, tx("TRANSFER", "5.00", today, "Reserva", f.checking(), null, f.wallet()))).get("id").asString();
-        String income = body(create(f, tx("INCOME", "1.00", today, "Novo", f.checking(), f.incomeCat(), null))).get("id").asString();
-        String toSavings = body(create(f, tx("TRANSFER", "1.00", today, "Para a poupança", f.checking(), null, savings))).get("id").asString();
+        String expense = body(create(f, tx("EXPENSE", "10.00", appToday.date().toString(), "Antigo", f.wallet(), f.expenseCat(), null))).get("id").asString();
+        String transfer = body(create(f, tx("TRANSFER", "5.00", appToday.date().toString(), "Reserva", f.checking(), null, f.wallet()))).get("id").asString();
+        String income = body(create(f, tx("INCOME", "1.00", appToday.date().toString(), "Novo", f.checking(), f.incomeCat(), null))).get("id").asString();
+        String toSavings = body(create(f, tx("TRANSFER", "1.00", appToday.date().toString(), "Para a poupança", f.checking(), null, savings))).get("id").asString();
 
         call(put(ws(f.s(), "/accounts/" + f.wallet())), f.s().token(), Map.of("name", "Carteira", "type", "CASH", "initialBalance", "0", "archived", true));
         call(put(ws(f.s(), "/categories/" + f.expenseCat())), f.s().token(), Map.of("name", "Velha", "color", "#000000", "archived", true));
 
         // mantendo a conta/categoria que já era do lançamento: pode editar
         assertThat(call(put(ws(f.s(), "/transactions/" + expense)), f.s().token(),
-                tx("EXPENSE", "12.00", today, "Antigo (corrigido)", f.wallet(), f.expenseCat(), null)).getStatus()).isEqualTo(200);
+                tx("EXPENSE", "12.00", appToday.date().toString(), "Antigo (corrigido)", f.wallet(), f.expenseCat(), null)).getStatus()).isEqualTo(200);
         assertThat(call(put(ws(f.s(), "/transactions/" + transfer)), f.s().token(),
-                tx("TRANSFER", "6.00", today, "Reserva", f.checking(), null, f.wallet())).getStatus()).isEqualTo(200);
+                tx("TRANSFER", "6.00", appToday.date().toString(), "Reserva", f.checking(), null, f.wallet())).getStatus()).isEqualTo(200);
 
         // trocando PARA a arquivada: recusado (origem e destino)
         MockHttpServletResponse toArchivedAccount = call(put(ws(f.s(), "/transactions/" + income)), f.s().token(),
-                tx("INCOME", "1.00", today, "Novo", f.wallet(), f.incomeCat(), null));
+                tx("INCOME", "1.00", appToday.date().toString(), "Novo", f.wallet(), f.incomeCat(), null));
         assertThat(body(toArchivedAccount).get("message").asString()).isEqualTo("Account is archived");
         MockHttpServletResponse toArchivedDest = call(put(ws(f.s(), "/transactions/" + toSavings)), f.s().token(),
-                tx("TRANSFER", "1.00", today, "Para a poupança", f.checking(), null, f.wallet()));
+                tx("TRANSFER", "1.00", appToday.date().toString(), "Para a poupança", f.checking(), null, f.wallet()));
         assertThat(body(toArchivedDest).get("message").asString()).isEqualTo("Account is archived");
 
         assertThat(body(call(get(ws(f.s(), "/transactions")).param("q", "   "), f.s().token(), null)).get("total").asInt())

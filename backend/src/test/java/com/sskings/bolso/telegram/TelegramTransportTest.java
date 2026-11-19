@@ -140,7 +140,7 @@ class TelegramTransportTest {
         poller.start();                                                  // segunda chamada não cria outra thread
         assertThat(poller.isRunning()).isTrue();
         verify(client, timeout(2000).times(1)).skipBacklog();            // falhou e entrou na espera (2 s)
-        Thread t = Thread.getAllStackTraces().keySet().stream().filter(x -> x.getName().equals("telegram-bot")).findFirst().orElseThrow();
+        Thread t = poller.thread();
         poller.stop();
         t.join(2000);
         assertThat(t.isAlive()).as("a espera é interrompida no desligamento").isFalse();

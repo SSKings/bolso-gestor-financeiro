@@ -46,6 +46,11 @@ public class TelegramPoller implements SmartLifecycle {
         return running;
     }
 
+    /** A thread deste poller (testes: o contexto Spring pode ter outro poller com o mesmo nome de thread). */
+    synchronized Thread thread() {
+        return thread;
+    }
+
     private void loop() {
         int failures = 0;
         while (running) {

@@ -140,6 +140,15 @@
 				</configuration>
 			</plugin>
 			<plugin>
+				<!-- Testes sempre com a JVM em UTC, como no CI e no servidor: na máquina local (fuso de São Paulo), um teste
+				     que confunde o "hoje" do sistema com o do app passava, e só quebrava no CI depois das 21h. -->
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>@{argLine} -Duser.timezone=UTC</argLine>
+				</configuration>
+			</plugin>
+			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.8.16</version>

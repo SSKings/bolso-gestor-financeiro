@@ -16,6 +16,8 @@
 
 	<properties>
 		<java.version>17</java.version>
+		<!-- vazio por padrão: o JaCoCo preenche no verify; sem isso, quem roda sem ele (PIT) recebe "@{argLine}" literal -->
+		<argLine></argLine>
 		<springdoc.version>3.2.0</springdoc.version>
 		<!--
 			Versões acima das que o Spring Boot gerencia, para corrigir CVEs. Remova cada linha quando o Boot passar a
